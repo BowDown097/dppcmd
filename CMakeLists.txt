@@ -46,22 +46,5 @@ target_sources(dpp-command-handler
             dpp-command-handler/utils/strings.h
             dpp-command-handler/utils/traits.h)
 
-find_package(DPP QUIET)
-if(DPP_FOUND)
-    target_link_libraries(dpp-command-handler PUBLIC dpp::dpp)
-else()
-    # get version 10.0.24 (latest as of 7/1/2023)
-    include(FetchContent)
-    option(BUILD_VOICE_SUPPORT "" OFF)
-    option(DPP_BUILD_TEST "" OFF)
-    FetchContent_Declare(libdpp GIT_REPOSITORY https://github.com/brainboxdotcc/DPP.git GIT_TAG 63ac3fed8bdd92e3122c6079b944f70fc9546dc2)
-
-    FetchContent_GetProperties(libdpp)
-    if(NOT libdpp_POPULATED)
-        FetchContent_Populate(libdpp)
-        target_include_directories(dpp-command-handler PUBLIC ${libdpp_SOURCE_DIR}/include)
-        add_subdirectory(${libdpp_SOURCE_DIR} ${libdpp_BINARY_DIR} EXCLUDE_FROM_ALL)
-    endif()
-
-    target_link_libraries(dpp-command-handler PUBLIC dpp)
-endif()
+find_package(DPP REQUIRED)
+target_link_libraries(dpp-command-handler PUBLIC dpp::dpp)
