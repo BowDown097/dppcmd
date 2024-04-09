@@ -14,7 +14,7 @@ TypeReaderResult ChannelTypeReader::read(dpp::cluster* cluster, const dpp::messa
             addResult(channel);
 
     // by ID (0.9)
-    if (uint64_t id = cmdhndlrutils::lexical_cast<uint64_t>(input))
+    if (uint64_t id = cmdhndlrutils::lexical_cast<uint64_t>(input, false))
         if (dpp::channel* channel = dpp::find_channel(id))
             addResult(channel, 0.9f);
 

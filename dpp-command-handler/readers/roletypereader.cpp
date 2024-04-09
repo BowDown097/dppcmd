@@ -14,7 +14,7 @@ TypeReaderResult RoleTypeReader::read(dpp::cluster* cluster, const dpp::message_
             addResult(role);
 
     // by ID (0.9)
-    if (uint64_t id = cmdhndlrutils::lexical_cast<uint64_t>(input))
+    if (uint64_t id = cmdhndlrutils::lexical_cast<uint64_t>(input, false))
         if (dpp::role* role = dpp::find_role(id))
             addResult(role);
 

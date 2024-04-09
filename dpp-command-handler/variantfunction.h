@@ -43,8 +43,7 @@ public:
         WrapperType* fw = dynamic_cast<WrapperType*>(m_wrapper.get());
         if (fw)
             return fw->func(std::forward<decltype(args)>(args)...);
-        else if constexpr (std::is_default_constructible_v<T>)
-            return T{};
+        return T{};
     }
 
 #ifdef DPP_CORO
@@ -53,6 +52,7 @@ public:
     {
         using ResultType = dpp_task_type<T>::result_type;
         using WrapperType = VariantFunctionWrapper<T, std::decay_t<decltype(args)>...>;
+
         WrapperType* fw = dynamic_cast<WrapperType*>(m_wrapper.get());
         if (fw)
         {
@@ -61,10 +61,8 @@ public:
             else
                 co_return co_await fw->func(std::forward<decltype(args)>(args)...);
         }
-        else if constexpr (std::is_default_constructible_v<ResultType>)
-        {
-            co_return ResultType{};
-        }
+
+        co_return ResultType{};
     }
 #endif
 

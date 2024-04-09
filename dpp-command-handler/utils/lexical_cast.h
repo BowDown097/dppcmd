@@ -179,9 +179,20 @@ namespace cmdhndlrutils
     }
 
     template<typename Target, typename Source>
-    inline Target lexical_cast(const Source& s)
+    inline Target lexical_cast(const Source& s, bool exceptions = true)
     {
-        return casters::lexical_caster<Target, Source>::cast(s);
+        if (exceptions)
+        {
+            return casters::lexical_caster<Target, Source>::cast(s);
+        }
+        else
+        {
+            try
+            {
+                return casters::lexical_caster<Target, Source>::cast(s);
+            }
+            catch (const bad_lexical_cast& e) { return Target{}; }
+        }
     }
 }
 

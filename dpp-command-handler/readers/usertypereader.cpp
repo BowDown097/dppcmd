@@ -15,7 +15,7 @@ TypeReaderResult UserTypeReader::read(dpp::cluster* cluster, const dpp::message_
             addResult(user);
 
     // by ID (0.9)
-    if (uint64_t id = cmdhndlrutils::lexical_cast<uint64_t>(input))
+    if (uint64_t id = cmdhndlrutils::lexical_cast<uint64_t>(input, false))
         if (dpp::user* user = dpp::find_user(id))
             addResult(user, 0.9f);
 
@@ -23,7 +23,7 @@ TypeReaderResult UserTypeReader::read(dpp::cluster* cluster, const dpp::message_
     if (size_t index = input.find_last_of('#'); index != std::string::npos)
     {
         std::string username = input.substr(0, index);
-        if (uint16_t discrim = cmdhndlrutils::lexical_cast<uint16_t>(input))
+        if (uint16_t discrim = cmdhndlrutils::lexical_cast<uint16_t>(input, false))
         {
             dpp::cache<dpp::user>* userCache = dpp::get_user_cache();
             std::shared_lock l(userCache->get_mutex());
