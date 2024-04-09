@@ -3,6 +3,8 @@
 #include <charconv>
 #include <sstream>
 
+// https://stackoverflow.com/a/1243741, with additions
+
 namespace cmdhndlrutils
 {
     class bad_lexical_cast : public std::bad_cast
@@ -15,7 +17,6 @@ namespace cmdhndlrutils
         std::string message;
     };
 
-    // https://stackoverflow.com/a/1243741, with additions
     namespace casters
     {
         template<typename Target, typename Source>
@@ -75,6 +76,54 @@ namespace cmdhndlrutils
             static const std::string& cast(const std::string& s)
             {
                 return s;
+            }
+        };
+
+        template<>
+        struct lexical_caster<double, std::string>
+        {
+            static double cast(const std::string& s)
+            {
+                try
+                {
+                    return std::stod(s);
+                }
+                catch (const std::exception& e)
+                {
+                    throw bad_lexical_cast("std::string", "double");
+                }
+            }
+        };
+
+        template<>
+        struct lexical_caster<float, std::string>
+        {
+            static float cast(const std::string& s)
+            {
+                try
+                {
+                    return std::stof(s);
+                }
+                catch (const std::exception& e)
+                {
+                    throw bad_lexical_cast("std::string", "float");
+                }
+            }
+        };
+
+        template<>
+        struct lexical_caster<long double, std::string>
+        {
+            static long double cast(const std::string& s)
+            {
+                try
+                {
+                    return std::stold(s);
+                }
+                catch (const std::exception& e)
+                {
+                    throw bad_lexical_cast("std::string", "long double");
+                }
             }
         };
 
