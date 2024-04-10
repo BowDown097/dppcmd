@@ -31,6 +31,8 @@ concept NonMemberFunction = std::is_function_v<std::remove_pointer_t<F>>;
 template<class Derived>
 concept TypeReaderDerivative = requires(Derived& t) { []<typename X>(TypeReader<X>&){}(t); };
 
+using CommandCRef = std::reference_wrapper<const CommandInfo>;
+
 class ModuleBase
 {
     friend class ModuleService;
@@ -38,7 +40,7 @@ public:
     explicit ModuleBase(const std::string& name, const std::string& summary = "") : m_name(name), m_summary(summary) {}
     virtual ~ModuleBase() = default;
 
-    std::vector<CommandInfo> commands() const;
+    std::vector<CommandCRef> commands() const;
     std::string name() const { return m_name; }
     std::string summary() const { return m_summary; }
 

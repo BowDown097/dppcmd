@@ -38,9 +38,6 @@ public:
 
     std::span<const std::unique_ptr<ModuleBase>> modules() const;
 
-    // there is no reason for a ModuleService to ever be deleted, so therefore
-    // we should be safe returning references to command and module info
-    // to squeeze out a bit more performance and such.
     std::vector<CommandCRef> searchCommand(const std::string& name, bool caseSensitive = false) const;
     std::vector<ModuleCRef> searchModule(const std::string& name, bool caseSensitive = false) const;
 

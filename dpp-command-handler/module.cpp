@@ -8,11 +8,11 @@ bad_command_argument::bad_command_argument(CommandError error, const std::string
         module, command, argIndex, arg, message
       )) {}
 
-std::vector<CommandInfo> ModuleBase::commands() const
+std::vector<CommandCRef> ModuleBase::commands() const
 {
-    std::vector<CommandInfo> out;
+    std::vector<CommandCRef> out;
     out.reserve(m_commands.size());
     for (const auto& [info, _] : m_commands)
-        out.push_back(info);
+        out.push_back(std::cref(info));
     return out;
 }
