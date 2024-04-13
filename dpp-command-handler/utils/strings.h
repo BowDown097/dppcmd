@@ -1,11 +1,11 @@
 #ifndef STRINGS_H
 #define STRINGS_H
-#include <string>
+#include <string_view>
 
 namespace cmdhndlrutils
 {
-    bool iequals(const std::string& s1, const std::string& s2);
-    bool sequals(const std::string& s1, const std::string& s2, bool caseSensitive);
+    bool iequals(std::string_view s1, std::string_view s2);
+    bool sequals(std::string_view s1, std::string_view s2, bool caseSensitive);
 }
 
 #endif // STRINGS_H

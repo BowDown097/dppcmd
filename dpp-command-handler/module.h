@@ -161,6 +161,12 @@ private:
                 throw bad_command_argument(result.error().value(), arg, argIndex + 1, name(), command, result.message());
             return typeReader;
         }
+        else if constexpr (is_instance<T, std::optional>::value)
+        {
+            if (arg.empty())
+                return std::nullopt;
+            return convertArg<typename T::value_type>(arg, argIndex, command);
+        }
         else
         {
             try
@@ -172,14 +178,6 @@ private:
                 throw bad_command_argument(CommandError::ParseFailed, arg, argIndex + 1, name(), command, e.what());
             }
         }
-    }
-
-    template<typename T> requires is_instance<T, std::optional>::value
-    T convertArg(const std::string& arg, size_t argIndex, const std::string& command)
-    {
-        if (arg.empty())
-            return std::nullopt;
-        return convertArg<typename T::value_type>(arg, argIndex, command);
     }
 
     template<class Tuple>

@@ -3,7 +3,8 @@
 #include <charconv>
 #include <sstream>
 
-// https://stackoverflow.com/a/1243741, with additions
+// general implementation from https://stackoverflow.com/a/1243741, with additions
+// to_chars casting from https://github.com/apache/arrow/blob/main/cpp/src/arrow/util/string.h
 
 namespace cmdhndlrutils
 {
@@ -19,6 +20,30 @@ namespace cmdhndlrutils
 
     namespace casters
     {
+        template<typename T, typename = void>
+        struct can_from_chars : std::false_type {};
+
+        template<typename T>
+        struct can_from_chars<
+            T, std::void_t<decltype(std::from_chars(std::declval<const char*>(), std::declval<const char*>(),
+                                                    std::declval<std::add_lvalue_reference_t<T>>()))>>
+            : std::true_type {};
+
+        template<typename T, typename = void>
+        struct can_to_chars : std::false_type {};
+
+        template <typename T>
+        struct can_to_chars<
+            T, std::void_t<decltype(std::to_chars(std::declval<char*>(), std::declval<char*>(),
+                                                  std::declval<std::remove_reference_t<T>>()))>>
+            : std::true_type {};
+
+        template<typename T>
+        inline constexpr bool has_from_chars = can_from_chars<T>::value;
+
+        template<typename T>
+        inline constexpr bool has_to_chars = can_to_chars<T>::value;
+
         template<typename Target, typename Source>
         struct lexical_caster
         {
@@ -79,101 +104,43 @@ namespace cmdhndlrutils
             }
         };
 
-        template<>
-        struct lexical_caster<double, std::string>
+        template<typename Number> requires has_from_chars<Number>
+        struct lexical_caster<Number, std::string>
         {
-            static double cast(const std::string& s)
+            static Number cast(const std::string& s)
             {
-                try
-                {
-                    return std::stod(s);
-                }
-                catch (const std::exception& e)
-                {
-                    throw bad_lexical_cast("std::string", "double");
-                }
+                Number n;
+                if (auto [_, ec] = std::from_chars(s.data(), s.data() + s.size(), n); ec != std::errc())
+                    throw bad_lexical_cast("std::string", typeid(Number).name());
+                return n;
             }
         };
 
-        template<>
-        struct lexical_caster<float, std::string>
+        template<typename Number> requires std::floating_point<Number> || std::integral<Number>
+        struct lexical_caster<std::string, Number>
         {
-            static float cast(const std::string& s)
+            static std::string cast(Number n)
             {
-                try
-                {
-                    return std::stof(s);
-                }
-                catch (const std::exception& e)
-                {
-                    throw bad_lexical_cast("std::string", "float");
-                }
-            }
-        };
+                if constexpr (!has_to_chars<Number>)
+                    return std::to_string(n);
 
-        template<>
-        struct lexical_caster<long double, std::string>
-        {
-            static long double cast(const std::string& s)
-            {
-                try
-                {
-                    return std::stold(s);
-                }
-                catch (const std::exception& e)
-                {
-                    throw bad_lexical_cast("std::string", "long double");
-                }
-            }
-        };
-
-        // std::from/to_chars is only used for integrals as floating point
-        // support for them has STILL not been implemented in some compilers.
-
-        template<std::integral Integral>
-        struct lexical_caster<Integral, std::string>
-        {
-            static Integral cast(const std::string& s)
-            {
-                Integral i;
-                if (auto [_, ec] = std::from_chars(s.data(), s.data() + s.size(), i); ec != std::errc())
-                    throw bad_lexical_cast("std::string", typeid(Integral).name());
-                return i;
-            }
-        };
-
-        // https://github.com/apache/arrow/blob/main/cpp/src/arrow/util/string.h
-        template<std::integral Integral>
-        struct lexical_caster<std::string, Integral>
-        {
-            static std::string cast(Integral i)
-            {
                 std::string out(15, 0);
 
-                auto res = std::to_chars(&out.front(), &out.back(), i);
+                auto res = std::to_chars(&out.front(), &out.back(), n);
                 while (res.ec != std::errc())
                 {
                     if (res.ec != std::errc::value_too_large)
-                        throw bad_lexical_cast(typeid(Integral).name(), "std::string");
+                        throw bad_lexical_cast(typeid(Number).name(), "std::string");
                     out.resize(out.capacity() * 2);
-                    res = std::to_chars(&out.front(), &out.back(), i);
+                    res = std::to_chars(&out.front(), &out.back(), n);
                 }
 
                 const auto length = res.ptr - out.data();
                 if (length > static_cast<int64_t>(out.length()))
-                    throw bad_lexical_cast(typeid(Integral).name(), "std::string");
+                    throw bad_lexical_cast(typeid(Number).name(), "std::string");
 
                 out.resize(length);
                 return out;
-            }
-        };
-
-        template<std::floating_point FloatingPoint>
-        struct lexical_caster<std::string, FloatingPoint>
-        {
-            static std::string cast(FloatingPoint f)
-            {
-                return std::to_string(f);
             }
         };
     }
