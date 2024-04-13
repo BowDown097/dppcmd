@@ -5,16 +5,15 @@
 #include <dpp/cache.h>
 #include <dpp/channel.h>
 
-TypeReaderResult ChannelTypeReader::read(dpp::cluster* cluster, const dpp::message_create_t* context,
-                                         const std::string& input)
+TypeReaderResult ChannelTypeReader::read(dpp::cluster* cluster, const dpp::message_create_t* context, std::string_view input)
 {
     // by mention (1.0)
-    if (uint64_t id = cmdhndlrutils::mentions::parseChannel(input))
+    if (uint64_t id = dpp::utility::parse_channel_mention(input))
         if (dpp::channel* channel = dpp::find_channel(id))
             addResult(channel);
 
     // by ID (0.9)
-    if (uint64_t id = cmdhndlrutils::lexical_cast<uint64_t>(input, false))
+    if (uint64_t id = dpp::utility::lexical_cast<uint64_t>(input, false))
         if (dpp::channel* channel = dpp::find_channel(id))
             addResult(channel, 0.9f);
 
@@ -24,7 +23,7 @@ TypeReaderResult ChannelTypeReader::read(dpp::cluster* cluster, const dpp::messa
         std::shared_lock l(channelCache->get_mutex());
 
         for (const auto& [_, channel] : channelCache->get_container())
-            if (cmdhndlrutils::iequals(channel->name, input))
+            if (dpp::utility::iequals(channel->name, input))
                 addResult(channel, channel->name == input ? 0.8f : 0.7f);
     }
 

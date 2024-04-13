@@ -38,7 +38,7 @@ TASK(PreconditionResult) ModuleService::genPreconditionResult(const CommandInfo&
     }
 
     if (finalError)
-        RETURN(PreconditionResult::fromError(finalError.value(), cmdhndlrutils::join(messages, "\n")));
+        RETURN(PreconditionResult::fromError(finalError.value(), dpp::utility::join(messages, "\n")));
 
     RETURN(PreconditionResult::fromSuccess());
 }
@@ -49,7 +49,7 @@ TASK(CommandResult) ModuleService::handleMessage(const dpp::message_create_t* ev
     if (!event->msg.content.starts_with(m_config.commandPrefix))
         RETURN(CommandResult::fromSuccess());
 
-    std::deque<std::string> args = CommandParser::parseArguments(event->msg.content, m_config.separatorChar);
+    std::deque<std::string> args = dpp::commandparser::parseArguments(event->msg.content, m_config.separatorChar);
 
     std::string inputCommandName = args.front();
     inputCommandName.erase(inputCommandName.cbegin());
@@ -63,14 +63,14 @@ std::span<const std::unique_ptr<ModuleBase>> ModuleService::modules() const
     return m_modules;
 }
 
-TASK(CommandResult) ModuleService::runCommand(const dpp::message_create_t* event, const std::string& name,
+TASK(CommandResult) ModuleService::runCommand(const dpp::message_create_t* event, std::string_view name,
                                               std::deque<std::string>&& args)
 {
     for (std::unique_ptr<ModuleBase>& module : m_modules)
     {
         for (const auto& [info, function] : module->m_commands)
         {
-            if (!cmdhndlrutils::sequals(info.name(), name, m_config.caseSensitiveLookup))
+            if (!dpp::utility::sequals(info.name(), name, m_config.caseSensitiveLookup))
                 continue;
 
             PreconditionResult precond = AWAIT(genPreconditionResult(info, event));
@@ -84,8 +84,8 @@ TASK(CommandResult) ModuleService::runCommand(const dpp::message_create_t* event
             else
             {
                 RETURN(CommandResult::fromError(CommandError::BadArgCount, std::format(
-                    "{}::{}: Ran with {} arguments, expects at least {}",
-                    module->name(), info.name(), args.size(), function->targetArgCount()
+                    "{}{}: Ran with {} arguments, expects at least {}",
+                    m_config.commandPrefix, info.name(), args.size(), function->targetArgCount()
                 )));
             }
         }
@@ -94,24 +94,24 @@ TASK(CommandResult) ModuleService::runCommand(const dpp::message_create_t* event
     RETURN(CommandResult::fromError(CommandError::UnknownCommand, name));
 }
 
-std::vector<CommandCRef> ModuleService::searchCommand(const std::string& name, bool caseSensitive) const
+std::vector<CommandCRef> ModuleService::searchCommand(std::string_view name, bool caseSensitive) const
 {
     std::vector<CommandCRef> out;
 
     for (const std::unique_ptr<ModuleBase>& module : m_modules)
         for (const auto& [info, _] : module->m_commands)
-            if (cmdhndlrutils::sequals(info.name(), name, m_config.caseSensitiveLookup))
+            if (dpp::utility::sequals(info.name(), name, m_config.caseSensitiveLookup))
                 out.push_back(std::cref(info));
 
     return out;
 }
 
-std::vector<ModuleCRef> ModuleService::searchModule(const std::string& name, bool caseSensitive) const
+std::vector<ModuleCRef> ModuleService::searchModule(std::string_view name, bool caseSensitive) const
 {
     std::vector<ModuleCRef> out;
 
     for (const std::unique_ptr<ModuleBase>& module : m_modules)
-        if (cmdhndlrutils::sequals(module->name(), name, m_config.caseSensitiveLookup))
+        if (dpp::utility::sequals(module->name(), name, m_config.caseSensitiveLookup))
             out.push_back(std::cref(*module));
 
     return out;

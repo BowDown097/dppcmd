@@ -3,25 +3,28 @@
 #include <numeric>
 #include <string>
 
-namespace cmdhndlrutils
+namespace dpp
 {
-    std::string join(std::ranges::sized_range auto&& range, const std::string& delim)
+    namespace utility
     {
-        size_t size = std::ranges::size(range);
-        if (size > 1)
+        std::string join(std::ranges::sized_range auto&& range, std::string_view delim)
         {
-            return std::accumulate(
-                std::next(std::ranges::cbegin(range)), std::ranges::cend(range),
-                lexical_cast<std::string>(*std::ranges::cbegin(range)),
-                [&delim](std::string a, auto& b) { return a + delim + lexical_cast<std::string>(b); }
-            );
-        }
-        else if (size == 1)
-        {
-            return lexical_cast<std::string>(*std::ranges::cbegin(range));
-        }
+            size_t size = std::ranges::size(range);
+            if (size > 1)
+            {
+                return std::accumulate(
+                    std::next(std::ranges::cbegin(range)), std::ranges::cend(range),
+                    lexical_cast<std::string>(*std::ranges::cbegin(range)),
+                    [&delim](std::string a, auto& b) { return a + std::string(delim) + lexical_cast<std::string>(b); }
+                );
+            }
+            else if (size == 1)
+            {
+                return lexical_cast<std::string>(*std::ranges::cbegin(range));
+            }
 
-        return "";
+            return "";
+        }
     }
 }
 

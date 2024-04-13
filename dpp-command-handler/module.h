@@ -5,7 +5,7 @@
 #include "results/commandresult.h"
 #include "utils/lexical_cast.h"
 #include "utils/traits.h"
-#include "variantfunction.h"
+#include "commandfunction.h"
 #include <deque>
 
 class ModuleService;
@@ -13,8 +13,8 @@ class ModuleService;
 class bad_command_argument : public std::exception
 {
 public:
-    bad_command_argument(CommandError error, const std::string& arg, size_t argIndex, const std::string& module,
-                         const std::string& command, const std::string& message);
+    bad_command_argument(CommandError error, std::string_view arg, size_t argIndex, std::string_view module,
+                         std::string_view command, std::string_view message);
     CommandError error() const { return m_error; }
     const char* what() const noexcept override { return m_message.c_str(); }
 private:
@@ -37,7 +37,7 @@ class ModuleBase
 {
     friend class ModuleService;
 public:
-    explicit ModuleBase(const std::string& name, const std::string& summary = "") : m_name(name), m_summary(summary) {}
+    explicit ModuleBase(std::string_view name, std::string_view summary = "") : m_name(name), m_summary(summary) {}
     virtual ~ModuleBase() = default;
 
     std::vector<CommandCRef> commands() const;
@@ -59,14 +59,14 @@ protected:
         using ModuleType = FTF::template arg<0>::type;
         using ResultType = FTF::result_type;
 
-        auto func = std::make_unique<VariantFunction>();
+        auto func = std::make_unique<CommandFunction>();
 
 #ifdef DPP_CORO
-        if constexpr (DppTask<ResultType>)
+        if constexpr (dpp_task_type<ResultType>::value)
         {
             auto bufferFunc = [this, mem_fn, info](ModuleType module, std::deque<std::string>&& args) -> ResultType {
                 auto fnArgs = std::tuple_cat(std::make_tuple(module), convertArgs<Args>(std::move(args), info.name()));
-                using TaskResultType = dpp_task_type<ResultType>::result_type;
+                using TaskResultType = dpp_task_type<ResultType>::value_type;
                 if constexpr (std::is_same_v<TaskResultType, void>)
                     co_await std::apply(mem_fn, fnArgs);
                 else
@@ -97,13 +97,13 @@ protected:
         using Args = FTF::args;
         using ResultType = FTF::result_type;
 
-        auto func = std::make_unique<VariantFunction>();
+        auto func = std::make_unique<CommandFunction>();
 
 #ifdef DPP_CORO
-        if constexpr (DppTask<ResultType>)
+        if constexpr (dpp_task_type<ResultType>::value)
         {
             auto bufferFunc = [this, f, info](std::deque<std::string>&& args) -> ResultType {
-                using TaskResultType = dpp_task_type<ResultType>::result_type;
+                using TaskResultType = dpp_task_type<ResultType>::value_type;
                 if constexpr (std::is_same_v<TaskResultType, void>)
                     co_await std::apply(f, convertArgs<Args>(std::move(args), info.name()));
                 else
@@ -126,7 +126,7 @@ protected:
         m_commands.emplace(info, std::move(func));
     }
 private:
-    std::unordered_map<CommandInfo, std::unique_ptr<VariantFunction>, CommandInfoHash> m_commands;
+    std::unordered_map<CommandInfo, std::unique_ptr<CommandFunction>, CommandInfoHash> m_commands;
     std::string m_name;
     std::string m_summary;
 
@@ -143,7 +143,7 @@ private:
     struct tuple_tail<std::tuple<T, Ts...>> { using type = std::tuple<Ts...>; };
 
     template<class Tuple>
-    auto convertArgs(std::deque<std::string>&& args, const std::string& command)
+    auto convertArgs(std::deque<std::string>&& args, std::string_view command)
     {
         return [this, args = std::move(args), &command]<size_t... Is>(std::index_sequence<Is...>) {
             return std::make_tuple(convertArg<std::tuple_element_t<Is, Tuple>>(args[Is], Is, command)...);
@@ -151,7 +151,7 @@ private:
     }
 
     template<typename T>
-    T convertArg(const std::string& arg, size_t argIndex, const std::string& command)
+    T convertArg(std::string_view arg, size_t argIndex, std::string_view command)
     {
         if constexpr (TypeReaderDerivative<T>)
         {
@@ -171,9 +171,9 @@ private:
         {
             try
             {
-                return cmdhndlrutils::lexical_cast<T>(arg);
+                return dpp::utility::lexical_cast<T>(arg);
             }
-            catch (const cmdhndlrutils::bad_lexical_cast& e)
+            catch (const dpp::utility::bad_lexical_cast& e)
             {
                 throw bad_command_argument(CommandError::ParseFailed, arg, argIndex + 1, name(), command, e.what());
             }
@@ -195,13 +195,13 @@ private:
         }
     }
 
-    virtual TASK(CommandResult) createInstanceAndRun(VariantFunction* function, dpp::cluster* cluster,
+    virtual TASK(CommandResult) createInstanceAndRun(CommandFunction* function, dpp::cluster* cluster,
                                                      const dpp::message_create_t* context, const ModuleService* service,
                                                      std::deque<std::string>&& args) = 0;
 };
 
 #define MODULE_SETUP(ModuleName) \
-TASK(CommandResult) createInstanceAndRun(VariantFunction* function, dpp::cluster* cluster, \
+TASK(CommandResult) createInstanceAndRun(CommandFunction* function, dpp::cluster* cluster, \
                                          const dpp::message_create_t* context, const ModuleService* service, \
                                          std::deque<std::string>&& args) override \
 { \

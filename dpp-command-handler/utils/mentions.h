@@ -1,15 +1,15 @@
 #ifndef MENTIONS_H
 #define MENTIONS_H
 #include <cstdint>
-#include <string>
+#include <string_view>
 
-namespace cmdhndlrutils
+namespace dpp
 {
-    namespace mentions
+    namespace utility
     {
-        uint64_t parseChannel(const std::string& str);
-        uint64_t parseRole(const std::string& str);
-        uint64_t parseUser(const std::string& str);
+        uint64_t parse_channel_mention(std::string_view str);
+        uint64_t parse_role_mention(std::string_view str);
+        uint64_t parse_user_mention(std::string_view str);
     }
 }
 

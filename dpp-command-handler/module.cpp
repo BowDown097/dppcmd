@@ -1,8 +1,8 @@
 #include "module.h"
 #include <format>
 
-bad_command_argument::bad_command_argument(CommandError error, const std::string& arg, size_t argIndex,
-                                           const std::string& module, const std::string& command, const std::string& message)
+bad_command_argument::bad_command_argument(CommandError error, std::string_view arg, size_t argIndex,
+                                           std::string_view module, std::string_view command, std::string_view message)
     : m_error(error), m_message(std::format(
         "{}::{}: Failed to convert argument {} ({}): {}",
         module, command, argIndex, arg, message

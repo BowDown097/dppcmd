@@ -21,7 +21,7 @@ template<typename T>
 class TypeReader
 {
 public:
-    virtual TypeReaderResult read(dpp::cluster* cluster, const dpp::message_create_t* context, const std::string& input) = 0;
+    virtual TypeReaderResult read(dpp::cluster* cluster, const dpp::message_create_t* context, std::string_view input) = 0;
 
     // max_element isn't used here to avoid pulling in <algorithm>
     T* topResult() const

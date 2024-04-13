@@ -14,7 +14,7 @@ public:
 protected:
     std::optional<CommandError> m_error;
     std::string m_message;
-    DppResult(const std::optional<CommandError>& error, const std::string& message)
+    DppResult(const std::optional<CommandError>& error, std::string_view message)
         : m_error(error), m_message(message) {}
 };
 

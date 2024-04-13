@@ -1,5 +1,5 @@
-#ifndef VARIANTFUNCTION_H
-#define VARIANTFUNCTION_H
+#ifndef COMMANDFUNCTION_H
+#define COMMANDFUNCTION_H
 #include <functional>
 #include <memory>
 
@@ -10,10 +10,7 @@ template<typename>
 struct dpp_task_type : std::false_type {};
 
 template<typename T>
-struct dpp_task_type<dpp::task<T>> : std::true_type { using result_type = T; };
-
-template<typename T>
-concept DppTask = dpp_task_type<T>::value;
+struct dpp_task_type<dpp::task<T>> : std::true_type { using value_type = T; };
 #endif
 
 struct VariantFunctionWrapperBase
@@ -27,7 +24,7 @@ struct VariantFunctionWrapper : VariantFunctionWrapperBase
     std::function<ReturnType(Args...)> func;
 };
 
-class VariantFunction
+class CommandFunction
 {
 public:
     bool isCoroutine() const { return m_isCoroutine; }
@@ -47,22 +44,22 @@ public:
     }
 
 #ifdef DPP_CORO
-    template<DppTask T>
+    template<typename T> requires dpp_task_type<T>::value
     T operator()(auto&&... args)
     {
-        using ResultType = dpp_task_type<T>::result_type;
+        using ValueType = dpp_task_type<T>::value_type;
         using WrapperType = VariantFunctionWrapper<T, std::decay_t<decltype(args)>...>;
 
         WrapperType* fw = dynamic_cast<WrapperType*>(m_wrapper.get());
         if (fw)
         {
-            if constexpr (std::is_same_v<ResultType, void>)
+            if constexpr (std::is_same_v<ValueType, void>)
                 co_await fw->func(std::forward<decltype(args)>(args)...);
             else
                 co_return co_await fw->func(std::forward<decltype(args)>(args)...);
         }
 
-        co_return ResultType{};
+        co_return ValueType{};
     }
 #endif
 
@@ -83,4 +80,4 @@ private:
     std::unique_ptr<VariantFunctionWrapperBase> m_wrapper;
 };
 
-#endif // VARIANTFUNCTION_H
+#endif // COMMANDFUNCTION_H

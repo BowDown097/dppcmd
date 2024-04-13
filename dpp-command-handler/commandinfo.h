@@ -7,8 +7,8 @@ class ModuleBase;
 class CommandInfo
 {
 public:
-    CommandInfo(ModuleBase* module, const std::string& name, const std::string& summary = "",
-                const std::string& remarks = "", const std::vector<Precondition> preconditions = {})
+    CommandInfo(ModuleBase* module, std::string_view name, std::string_view summary = "",
+                std::string_view remarks = "", const std::vector<Precondition> preconditions = {})
         : m_module(module), m_name(name), m_preconditions(preconditions), m_summary(summary), m_remarks(remarks) {}
 
     const ModuleBase* module() const { return m_module; }

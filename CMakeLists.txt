@@ -24,12 +24,12 @@ target_sources(dpp-command-handler
         dpp-command-handler/utils/strings.cpp
     PUBLIC
         FILE_SET HEADERS FILES
+            dpp-command-handler/commandfunction.h
             dpp-command-handler/commandinfo.h
             dpp-command-handler/commandparser.h
             dpp-command-handler/module.h
             dpp-command-handler/moduleservice.h
             dpp-command-handler/precondition.h
-            dpp-command-handler/variantfunction.h
             dpp-command-handler/readers/channeltypereader.h
             dpp-command-handler/readers/roletypereader.h
             dpp-command-handler/readers/typereader.h

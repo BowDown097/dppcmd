@@ -1,59 +1,62 @@
 #include "commandparser.h"
 
 // skidded from lenny because i got lazy lmao
-namespace CommandParser
+namespace dpp
 {
-    enum class QuotationState { None, Single, Double };
-
-    std::deque<std::string> parseArguments(const std::string& input, char sep)
+    namespace commandparser
     {
-        std::deque<std::string> output;
+        enum class QuotationState { None, Single, Double };
 
-        bool whitespace = true, escape = false;
-        QuotationState quoteState = QuotationState::None;
-
-        for (const char& c : input)
+        std::deque<std::string> parseArguments(std::string_view input, char sep)
         {
-            if (c == sep && quoteState == QuotationState::None && !escape)
+            std::deque<std::string> output;
+
+            bool whitespace = true, escape = false;
+            QuotationState quoteState = QuotationState::None;
+
+            for (const char& c : input)
             {
-                whitespace = true;
-            }
-            else
-            {
-                if (!escape && c == '\\')
+                if (c == sep && quoteState == QuotationState::None && !escape)
                 {
-                    escape = true;
+                    whitespace = true;
                 }
                 else
                 {
-                    if (whitespace)
+                    if (!escape && c == '\\')
                     {
-                        output.emplace_back();
-                        whitespace = false;
-                    }
-                    if (escape)
-                    {
-                        if (c == '\\' || c == '"' || c == '\'' || c == sep)
-                            output.back().push_back(c);
-                        else
-                            output.back().push_back('\\');
-                    }
-                    else if (quoteState != QuotationState::Single && c == '"')
-                    {
-                        quoteState = quoteState == QuotationState::None ? QuotationState::Double : QuotationState::None;
-                    }
-                    else if (quoteState != QuotationState::Double && c == '\'')
-                    {
-                        quoteState = quoteState == QuotationState::None ? QuotationState::Single : QuotationState::None;
+                        escape = true;
                     }
                     else
                     {
-                        output.back().push_back(c);
+                        if (whitespace)
+                        {
+                            output.emplace_back();
+                            whitespace = false;
+                        }
+                        if (escape)
+                        {
+                            if (c == '\\' || c == '"' || c == '\'' || c == sep)
+                                output.back().push_back(c);
+                            else
+                                output.back().push_back('\\');
+                        }
+                        else if (quoteState != QuotationState::Single && c == '"')
+                        {
+                            quoteState = quoteState == QuotationState::None ? QuotationState::Double : QuotationState::None;
+                        }
+                        else if (quoteState != QuotationState::Double && c == '\'')
+                        {
+                            quoteState = quoteState == QuotationState::None ? QuotationState::Single : QuotationState::None;
+                        }
+                        else
+                        {
+                            output.back().push_back(c);
+                        }
                     }
                 }
             }
-        }
 
-        return output;
+            return output;
+        }
     }
 }

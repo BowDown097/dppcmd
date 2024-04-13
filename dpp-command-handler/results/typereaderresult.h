@@ -5,15 +5,15 @@
 class TypeReaderResult : public DppResult
 {
 public:
-    static TypeReaderResult fromSuccess(const std::string& message = "")
+    static TypeReaderResult fromSuccess(std::string_view message = "")
     { return TypeReaderResult(std::nullopt, message); }
 
-    static TypeReaderResult fromError(CommandError error, const std::string& message)
+    static TypeReaderResult fromError(CommandError error, std::string_view message)
     { return TypeReaderResult(error, message); }
 
     TypeReaderResult() = default;
 private:
-    TypeReaderResult(const std::optional<CommandError>& error, const std::string& message) : DppResult(error, message) {}
+    TypeReaderResult(const std::optional<CommandError>& error, std::string_view message) : DppResult(error, message) {}
 };
 
 #endif // TYPEREADERRESULT_H

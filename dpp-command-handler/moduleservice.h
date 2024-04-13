@@ -33,13 +33,11 @@ public:
 
     TASK(PreconditionResult) genPreconditionResult(const CommandInfo& command, const dpp::message_create_t* event);
     TASK(CommandResult) handleMessage(const dpp::message_create_t* event);
-    TASK(CommandResult) runCommand(const dpp::message_create_t* event, const std::string& name,
-                                   std::deque<std::string>&& args);
 
     std::span<const std::unique_ptr<ModuleBase>> modules() const;
 
-    std::vector<CommandCRef> searchCommand(const std::string& name, bool caseSensitive = false) const;
-    std::vector<ModuleCRef> searchModule(const std::string& name, bool caseSensitive = false) const;
+    std::vector<CommandCRef> searchCommand(std::string_view name, bool caseSensitive = false) const;
+    std::vector<ModuleCRef> searchModule(std::string_view name, bool caseSensitive = false) const;
 
     template<Module M>
     void registerModule()
@@ -52,6 +50,9 @@ private:
     dpp::cluster* m_cluster;
     ModuleServiceConfig m_config;
     std::vector<std::unique_ptr<ModuleBase>> m_modules;
+
+    TASK(CommandResult) runCommand(const dpp::message_create_t* event, std::string_view name,
+               std::deque<std::string>&& args);
 };
 
 #endif // MODULESERVICE_H

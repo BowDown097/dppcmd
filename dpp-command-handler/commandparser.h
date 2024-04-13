@@ -3,9 +3,12 @@
 #include <deque>
 #include <string>
 
-namespace CommandParser
+namespace dpp
 {
-    std::deque<std::string> parseArguments(const std::string& input, char sep);
+    namespace commandparser
+    {
+        std::deque<std::string> parseArguments(std::string_view input, char sep);
+    }
 }
 
 #endif // COMMANDPARSER_H

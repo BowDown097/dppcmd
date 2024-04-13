@@ -17,12 +17,14 @@ std::string demangle(const char* name)
 #endif
 }
 
-namespace cmdhndlrutils
+namespace dpp
 {
-    bad_lexical_cast::bad_lexical_cast(const char* sourceTypeName, const char* targetTypeName)
-        : message(targetTypeName == nullptr
-                      ? "Failed to stream from source type " + demangle(sourceTypeName)
-                      : "Failed to stream from source type " + demangle(sourceTypeName) +
-                        " to target type " + demangle(targetTypeName))
-    {}
+    namespace utility
+    {
+        bad_lexical_cast::bad_lexical_cast(const char* sourceTypeName, const char* targetTypeName)
+            : message(targetTypeName == nullptr
+                          ? "Failed to stream from source type " + demangle(sourceTypeName)
+                          : "Failed to stream from source type " + demangle(sourceTypeName) +
+                            " to target type " + demangle(targetTypeName)) {}
+    }
 }
