@@ -70,7 +70,7 @@ TASK(CommandResult) ModuleService::runCommand(const dpp::message_create_t* event
     {
         for (const auto& [info, function] : module->m_commands)
         {
-            if (!dpp::utility::sequals(info.name(), name, m_config.caseSensitiveLookup))
+            if (!info.matches(name, m_config.caseSensitiveLookup))
                 continue;
 
             PreconditionResult precond = AWAIT(genPreconditionResult(info, event));
@@ -85,7 +85,7 @@ TASK(CommandResult) ModuleService::runCommand(const dpp::message_create_t* event
             {
                 RETURN(CommandResult::fromError(CommandError::BadArgCount, std::format(
                     "{}{}: Ran with {} arguments, expects at least {}",
-                    m_config.commandPrefix, info.name(), args.size(), function->targetArgCount()
+                    m_config.commandPrefix, name, args.size(), function->targetArgCount()
                 )));
             }
         }
@@ -100,7 +100,7 @@ std::vector<CommandCRef> ModuleService::searchCommand(std::string_view name) con
 
     for (const std::unique_ptr<ModuleBase>& module : m_modules)
         for (const auto& [info, _] : module->m_commands)
-            if (dpp::utility::sequals(info.name(), name, m_config.caseSensitiveLookup))
+            if (info.matches(name, m_config.caseSensitiveLookup))
                 out.push_back(std::cref(info));
 
     return out;

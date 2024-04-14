@@ -13,6 +13,7 @@ endif()
 
 target_sources(dpp-command-handler
     PRIVATE
+        dpp-command-handler/commandinfo.cpp
         dpp-command-handler/commandparser.cpp
         dpp-command-handler/module.cpp
         dpp-command-handler/moduleservice.cpp

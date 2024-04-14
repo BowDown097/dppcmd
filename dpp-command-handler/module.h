@@ -126,7 +126,7 @@ protected:
         m_commands.emplace(info, std::move(func));
     }
 private:
-    std::unordered_map<CommandInfo, std::unique_ptr<CommandFunction>, CommandInfoHash> m_commands;
+    std::unordered_map<CommandInfo, std::unique_ptr<CommandFunction>> m_commands;
     std::string m_name;
     std::string m_summary;
 
