@@ -94,7 +94,7 @@ TASK(CommandResult) ModuleService::runCommand(const dpp::message_create_t* event
     RETURN(CommandResult::fromError(CommandError::UnknownCommand, name));
 }
 
-std::vector<CommandCRef> ModuleService::searchCommand(std::string_view name, bool caseSensitive) const
+std::vector<CommandCRef> ModuleService::searchCommand(std::string_view name) const
 {
     std::vector<CommandCRef> out;
 
@@ -106,7 +106,7 @@ std::vector<CommandCRef> ModuleService::searchCommand(std::string_view name, boo
     return out;
 }
 
-std::vector<ModuleCRef> ModuleService::searchModule(std::string_view name, bool caseSensitive) const
+std::vector<ModuleCRef> ModuleService::searchModule(std::string_view name) const
 {
     std::vector<ModuleCRef> out;
 

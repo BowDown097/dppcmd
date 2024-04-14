@@ -36,8 +36,8 @@ public:
 
     std::span<const std::unique_ptr<ModuleBase>> modules() const;
 
-    std::vector<CommandCRef> searchCommand(std::string_view name, bool caseSensitive = false) const;
-    std::vector<ModuleCRef> searchModule(std::string_view name, bool caseSensitive = false) const;
+    std::vector<CommandCRef> searchCommand(std::string_view name) const;
+    std::vector<ModuleCRef> searchModule(std::string_view name) const;
 
     template<Module M>
     void registerModule()
