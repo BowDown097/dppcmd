@@ -15,7 +15,7 @@ namespace dpp
                 return std::accumulate(
                     std::next(std::ranges::cbegin(range)), std::ranges::cend(range),
                     lexical_cast<std::string>(*std::ranges::cbegin(range)),
-                    [&delim](std::string a, auto& b) { return a + std::string(delim) + lexical_cast<std::string>(b); }
+                    [&delim](std::string a, const auto& b) { return a + std::string(delim) + lexical_cast<std::string>(b); }
                 );
             }
             else if (size == 1)
