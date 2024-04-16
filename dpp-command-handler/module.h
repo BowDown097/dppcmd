@@ -31,8 +31,6 @@ concept NonMemberFunction = std::is_function_v<std::remove_pointer_t<F>>;
 template<class Derived>
 concept TypeReaderDerivative = requires(Derived& t) { []<typename X>(TypeReader<X>&){}(t); };
 
-using CommandCRef = std::reference_wrapper<const CommandInfo>;
-
 class ModuleBase
 {
     friend class ModuleService;
@@ -40,7 +38,7 @@ public:
     explicit ModuleBase(std::string_view name, std::string_view summary = "") : m_name(name), m_summary(summary) {}
     virtual ~ModuleBase() = default;
 
-    std::vector<CommandCRef> commands() const;
+    std::vector<std::reference_wrapper<const CommandInfo>> commands() const;
     std::string name() const { return m_name; }
     std::string summary() const { return m_summary; }
 
@@ -87,7 +85,7 @@ protected:
 #endif
 
         func->setTargetArgCount(targetArgCount<Args>());
-        m_commands.emplace(info, std::move(func));
+        m_commands.emplace_back(info, std::move(func));
     }
 
     void registerCommand(NonMemberFunction auto&& f, auto&&... commandInfoArgs)
@@ -123,10 +121,10 @@ protected:
 #endif
 
         func->setTargetArgCount(targetArgCount<Args>());
-        m_commands.emplace(info, std::move(func));
+        m_commands.emplace_back(info, std::move(func));
     }
 private:
-    std::unordered_map<CommandInfo, std::unique_ptr<CommandFunction>> m_commands;
+    std::vector<std::pair<CommandInfo, std::unique_ptr<CommandFunction>>> m_commands;
     std::string m_name;
     std::string m_summary;
 

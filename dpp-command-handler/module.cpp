@@ -8,9 +8,9 @@ bad_command_argument::bad_command_argument(CommandError error, std::string_view 
         module, command, argIndex, arg, message
       )) {}
 
-std::vector<CommandCRef> ModuleBase::commands() const
+std::vector<std::reference_wrapper<const CommandInfo>> ModuleBase::commands() const
 {
-    std::vector<CommandCRef> out;
+    std::vector<std::reference_wrapper<const CommandInfo>> out;
     out.reserve(m_commands.size());
     for (const auto& [info, _] : m_commands)
         out.push_back(std::cref(info));

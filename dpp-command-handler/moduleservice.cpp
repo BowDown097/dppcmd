@@ -94,9 +94,9 @@ TASK(CommandResult) ModuleService::runCommand(const dpp::message_create_t* event
     RETURN(CommandResult::fromError(CommandError::UnknownCommand, name));
 }
 
-std::vector<CommandCRef> ModuleService::searchCommand(std::string_view name) const
+std::vector<std::reference_wrapper<const CommandInfo>> ModuleService::searchCommand(std::string_view name) const
 {
-    std::vector<CommandCRef> out;
+    std::vector<std::reference_wrapper<const CommandInfo>> out;
 
     for (const std::unique_ptr<ModuleBase>& module : m_modules)
         for (const auto& [info, _] : module->m_commands)
@@ -106,9 +106,9 @@ std::vector<CommandCRef> ModuleService::searchCommand(std::string_view name) con
     return out;
 }
 
-std::vector<ModuleCRef> ModuleService::searchModule(std::string_view name) const
+std::vector<std::reference_wrapper<const ModuleBase>> ModuleService::searchModule(std::string_view name) const
 {
-    std::vector<ModuleCRef> out;
+    std::vector<std::reference_wrapper<const ModuleBase>> out;
 
     for (const std::unique_ptr<ModuleBase>& module : m_modules)
         if (dpp::utility::sequals(module->name(), name, m_config.caseSensitiveLookup))

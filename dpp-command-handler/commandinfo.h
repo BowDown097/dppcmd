@@ -12,9 +12,9 @@ public:
                 std::string_view remarks = "", const std::vector<Precondition>& preconditions = {})
         : m_module(module), m_names(names), m_preconditions(preconditions), m_remarks(remarks), m_summary(summary) {}
 
-    CommandInfo(ModuleBase* module, std::string_view name, std::string_view summary = "",
+    CommandInfo(ModuleBase* module, const std::string& name, std::string_view summary = "",
                 std::string_view remarks = "", const std::vector<Precondition>& preconditions = {})
-        : CommandInfo(module, { std::string(name) }, summary, remarks, preconditions) {}
+        : CommandInfo(module, std::initializer_list<std::string> { name }, summary, remarks, preconditions) {}
 
     std::span<const std::string> aliases() const;
     bool matches(std::string_view name, bool caseSensitive) const;

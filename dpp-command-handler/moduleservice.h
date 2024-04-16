@@ -15,9 +15,6 @@ namespace dpp { class cluster; class message_create_t; }
 template<typename T>
 concept Module = std::derived_from<T, ModuleBase>;
 
-using CommandCRef = std::reference_wrapper<const CommandInfo>;
-using ModuleCRef = std::reference_wrapper<const ModuleBase>;
-
 struct ModuleServiceConfig
 {
     bool caseSensitiveLookup{};
@@ -36,8 +33,8 @@ public:
 
     std::span<const std::unique_ptr<ModuleBase>> modules() const;
 
-    std::vector<CommandCRef> searchCommand(std::string_view name) const;
-    std::vector<ModuleCRef> searchModule(std::string_view name) const;
+    std::vector<std::reference_wrapper<const CommandInfo>> searchCommand(std::string_view name) const;
+    std::vector<std::reference_wrapper<const ModuleBase>> searchModule(std::string_view name) const;
 
     template<Module M>
     void registerModule()

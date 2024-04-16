@@ -14,7 +14,7 @@ namespace dpp
         {
         public:
             explicit bad_lexical_cast(const char* sourceTypeName, const char* targetTypeName = nullptr);
-            explicit bad_lexical_cast(const std::string& message) : message(message) {}
+            explicit bad_lexical_cast(std::string_view message) : message(message) {}
             const char* what() const noexcept override { return message.c_str(); }
         private:
             std::string message;
@@ -66,6 +66,15 @@ namespace dpp
                 }
             };
 
+            template<>
+            struct lexical_caster<std::string, std::string>
+            {
+                static const std::string& cast(const std::string& s)
+                {
+                    return s;
+                }
+            };
+
             template<typename Source>
             struct lexical_caster<std::string, Source>
             {
@@ -75,38 +84,6 @@ namespace dpp
                     if ((oss << s).fail())
                         throw bad_lexical_cast(typeid(Source).name());
                     return oss.str();
-                }
-            };
-
-            template<typename Target, typename String> requires std::is_convertible_v<String, std::string_view>
-            struct lexical_caster<Target, String>
-            {
-                static Target cast(std::string_view s)
-                {
-                    if constexpr (can_from_chars<Target>::value)
-                    {
-                        Target n;
-                        if (auto [_, ec] = std::from_chars(s.data(), s.data() + s.size(), n); ec != std::errc())
-                            throw bad_lexical_cast(typeid(String).name(), typeid(Target).name());
-                        return n;
-                    }
-                    else
-                    {
-                        std::istringstream ss(s.data());
-                        Target t;
-                        if ((ss >> t).fail() || !(ss >> std::ws).eof())
-                            throw bad_lexical_cast(typeid(String).name(), typeid(Target).name());
-                        return t;
-                    }
-                }
-            };
-
-            template<>
-            struct lexical_caster<std::string, std::string>
-            {
-                static const std::string& cast(const std::string& s)
-                {
-                    return s;
                 }
             };
 
@@ -135,6 +112,29 @@ namespace dpp
 
                     out.resize(length);
                     return out;
+                }
+            };
+
+            template<typename Target, typename String> requires std::is_convertible_v<String, std::string_view>
+            struct lexical_caster<Target, String>
+            {
+                static Target cast(std::string_view s)
+                {
+                    if constexpr (can_from_chars<Target>::value)
+                    {
+                        Target n;
+                        if (auto [_, ec] = std::from_chars(s.data(), s.data() + s.size(), n); ec != std::errc())
+                            throw bad_lexical_cast(typeid(String).name(), typeid(Target).name());
+                        return n;
+                    }
+                    else
+                    {
+                        std::istringstream ss(s.data());
+                        Target t;
+                        if ((ss >> t).fail() || !(ss >> std::ws).eof())
+                            throw bad_lexical_cast(typeid(String).name(), typeid(Target).name());
+                        return t;
+                    }
                 }
             };
         }
