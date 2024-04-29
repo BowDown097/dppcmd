@@ -27,9 +27,6 @@ namespace dpp
     template<typename F>
     concept member_function = std::is_member_function_pointer_v<F>;
 
-    template<typename F>
-    concept non_member_function = std::is_function_v<std::remove_pointer_t<F>>;
-
     template<class Derived>
     concept type_reader_derivative = requires(Derived& t) { []<typename X>(type_reader<X>&){}(t); };
 
@@ -65,59 +62,25 @@ namespace dpp
             if constexpr (task_type<ResultType>::value)
             {
                 auto bufferFunc = [this, mem_fn, info](ModuleType module, std::deque<std::string>&& args) -> ResultType {
-                    auto fnArgs = std::tuple_cat(std::make_tuple(module), convert_args<Args>(std::move(args), info.name()));
+                    auto fnArgs = std::tuple_cat(std::make_tuple(module),
+                        module->template convert_args<Args>(std::move(args), info.name()));
                     using TaskResultType = task_type<ResultType>::value_type;
                     if constexpr (std::is_same_v<TaskResultType, void>)
                         co_await std::apply(mem_fn, fnArgs);
                     else
                         co_return co_await std::apply(mem_fn, fnArgs);
                 };
-                func->set(std::function<ResultType(ModuleType, std::deque<std::string>)>(bufferFunc), true, true);
+                func->set(std::function<ResultType(ModuleType, std::deque<std::string>)>(bufferFunc), true);
             }
             else
             {
     #endif
                 auto bufferFunc = [this, mem_fn, info](ModuleType module, std::deque<std::string>&& args) -> ResultType {
-                    auto fnArgs = std::tuple_cat(std::make_tuple(module), convert_args<Args>(std::move(args), info.name()));
+                    auto fnArgs = std::tuple_cat(std::make_tuple(module),
+                        module->template convert_args<Args>(std::move(args), info.name()));
                     return std::apply(mem_fn, fnArgs);
                 };
-                func->set(std::function<ResultType(ModuleType, std::deque<std::string>)>(bufferFunc), true);
-    #ifdef DPP_CORO
-            }
-    #endif
-
-            func->set_target_arg_count(target_arg_count<Args>());
-            m_commands.emplace_back(info, std::move(func));
-        }
-
-        void register_command(non_member_function auto&& f, auto&&... commandInfoArgs)
-        {
-            command_info info(this, std::forward<decltype(commandInfoArgs)>(commandInfoArgs)...);
-            using FTF = function_traits<decltype(f)>;
-            using Args = FTF::args;
-            using ResultType = FTF::result_type;
-
-            auto func = std::make_unique<command_function>();
-
-    #ifdef DPP_CORO
-            if constexpr (task_type<ResultType>::value)
-            {
-                auto bufferFunc = [this, f, info](std::deque<std::string>&& args) -> ResultType {
-                    using TaskResultType = task_type<ResultType>::value_type;
-                    if constexpr (std::is_same_v<TaskResultType, void>)
-                        co_await std::apply(f, convert_args<Args>(std::move(args), info.name()));
-                    else
-                        co_return co_await std::apply(f, convert_args<Args>(std::move(args), info.name()));
-                };
-                func->set(std::function<ResultType(std::deque<std::string>)>(bufferFunc), true, true);
-            }
-            else
-            {
-    #endif
-                auto bufferFunc = [this, f, info](std::deque<std::string>&& args) -> ResultType {
-                    return std::apply(f, convert_args<Args>(std::move(args), info.name()));
-                };
-                func->set(std::function<ResultType(std::deque<std::string>)>(bufferFunc), true);
+                func->set(std::function<ResultType(ModuleType, std::deque<std::string>)>(bufferFunc));
     #ifdef DPP_CORO
             }
     #endif
@@ -146,7 +109,8 @@ namespace dpp
         auto convert_args(std::deque<std::string>&& args, std::string_view command)
         {
             return [this, args = std::move(args), &command]<size_t... Is>(std::index_sequence<Is...>) {
-                return std::make_tuple(convert_arg<std::tuple_element_t<Is, Tuple>>(args[Is], Is, command)...);
+                return std::make_tuple(convert_arg<std::tuple_element_t<Is, Tuple>>(
+                    Is < args.size() ? args[Is] : "", Is, command)...);
             }(std::make_index_sequence<std::tuple_size_v<Tuple>>());
         }
 
@@ -206,24 +170,14 @@ TASK(dpp::command_result) create_instance_and_run(dpp::command_function* functio
 { \
     try \
     { \
-        if (function->is_member_function()) \
-        { \
-            auto instance = std::make_unique<module_name>(); \
-            instance->cluster = cluster; \
-            instance->context = context; \
-            instance->service = service; \
-            if (function->is_coroutine()) \
-                RETURN(AWAIT(function->operator()<TASK(dpp::command_result)>(instance.get(), std::move(args)))); \
-            else \
-                RETURN(function->operator()<dpp::command_result>(instance.get(), std::move(args))); \
-        } \
+        auto instance = std::make_unique<module_name>(); \
+        instance->cluster = cluster; \
+        instance->context = context; \
+        instance->service = service; \
+        if (function->is_coroutine()) \
+            RETURN(AWAIT(function->operator()<TASK(dpp::command_result)>(instance.get(), std::move(args)))); \
         else \
-        { \
-            if (function->is_coroutine()) \
-                RETURN(AWAIT(function->operator()<TASK(dpp::command_result)>(std::move(args)))); \
-            else \
-                RETURN(function->operator()<dpp::command_result>(std::move(args))); \
-        } \
+            RETURN(function->operator()<dpp::command_result>(instance.get(), std::move(args))); \
     } \
     catch (const dpp::bad_command_argument& e) \
     { \

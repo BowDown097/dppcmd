@@ -13,11 +13,13 @@ namespace dpp
     class type_reader_value
     {
     public:
-        type_reader_value(T* value, float weight) : m_value(value), m_weight(weight) {}
-        T* value() const { return m_value; }
+        type_reader_value(const T& value, float weight) : m_value(value), m_weight(weight) {}
+        type_reader_value(T&& value, float weight) : m_value(std::move(value)), m_weight(weight) {}
+
+        T value() const { return m_value; }
         float weight() const { return m_weight; }
     private:
-        T* m_value;
+        T m_value;
         float m_weight;
     };
 
@@ -27,8 +29,7 @@ namespace dpp
     public:
         virtual type_reader_result read(cluster* cluster, const message_create_t* context, std::string_view input) = 0;
 
-        // max_element isn't used here to avoid pulling in <algorithm>
-        T* top_result() const
+        T top_result() const
         {
             const type_reader_value<T>* topValue{};
 
@@ -36,7 +37,7 @@ namespace dpp
                 if (!topValue || topValue->weight() < value.weight())
                     topValue = &value;
 
-            return topValue ? topValue->value() : nullptr;
+            return topValue ? topValue->value() : T{};
         }
 
         bool has_result() const { return !m_results.empty(); }
@@ -44,7 +45,8 @@ namespace dpp
 
         std::span<const type_reader_value<T>> results() const { return m_results; }
     protected:
-        void add_result(T* value, float weight = 1.0f) { m_results.emplace_back(value, weight); }
+        void add_result(const T& value, float weight = 1.0f) { m_results.emplace_back(value, weight); }
+        void add_result(T&& value, float weight = 1.0f) { m_results.emplace_back(std::move(value), weight); }
     private:
         std::vector<type_reader_value<T>> m_results;
     };

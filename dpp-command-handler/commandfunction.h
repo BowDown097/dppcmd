@@ -31,8 +31,6 @@ namespace dpp
     {
     public:
         bool is_coroutine() const { return m_is_coroutine; }
-        bool is_member_function() const { return m_is_member_function; }
-
         void set_target_arg_count(size_t count) { m_target_arg_count = count; }
         size_t target_arg_count() const { return m_target_arg_count; }
 
@@ -67,18 +65,16 @@ namespace dpp
     #endif
 
         template<typename ReturnType, typename... Args>
-        void set(std::function<ReturnType(Args...)> f, bool isMemberFunction, bool isCoroutine = false)
+        void set(std::function<ReturnType(Args...)> f, bool isCoroutine = false)
         {
             using WrapperType = variant_function_wrapper<ReturnType, Args...>;
             m_is_coroutine = isCoroutine;
-            m_is_member_function = isMemberFunction;
             m_target_arg_count = sizeof...(Args);
             m_wrapper = std::make_unique<WrapperType>();
             dynamic_cast<WrapperType*>(m_wrapper.get())->func = f;
         }
     private:
         bool m_is_coroutine;
-        bool m_is_member_function;
         size_t m_target_arg_count;
         std::unique_ptr<variant_function_wrapper_base> m_wrapper;
     };

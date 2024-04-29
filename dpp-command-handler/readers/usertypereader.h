@@ -6,7 +6,7 @@ namespace dpp
 {
     class user;
 
-    struct user_in : type_reader<user>
+    struct user_in : type_reader<user*>
     {
         type_reader_result read(cluster* cluster, const message_create_t* context, std::string_view input) override;
     };

@@ -6,7 +6,7 @@ namespace dpp
 {
     class role;
 
-    struct role_in : type_reader<role>
+    struct role_in : type_reader<role*>
     {
         type_reader_result read(cluster* cluster, const message_create_t* context, std::string_view input) override;
     };
