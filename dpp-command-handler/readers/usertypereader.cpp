@@ -10,6 +10,9 @@ namespace dpp
 {
     type_reader_result user_in::read(cluster* cluster, const message_create_t* context, std::string_view input)
     {
+        if (input.empty())
+            return type_reader_result::from_error(command_error::object_not_found, "No input.");
+
         // by mention (1.0)
         if (uint64_t id = utility::parse_user_mention(input))
             if (user* user = find_user(id))

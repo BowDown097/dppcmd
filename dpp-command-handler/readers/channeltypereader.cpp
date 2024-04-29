@@ -9,6 +9,9 @@ namespace dpp
 {
     type_reader_result channel_in::read(cluster* cluster, const message_create_t* context, std::string_view input)
     {
+        if (input.empty())
+            return type_reader_result::from_error(command_error::object_not_found, "No input.");
+
         // by mention (1.0)
         if (uint64_t id = utility::parse_channel_mention(input))
             if (channel* channel = find_channel(id))
