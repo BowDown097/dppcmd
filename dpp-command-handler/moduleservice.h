@@ -7,49 +7,53 @@
 #include <span>
 #include <vector>
 
-class CommandInfo;
-class ModuleBase;
-class PreconditionResult;
-namespace dpp { class cluster; class message_create_t; }
-
-template<typename T>
-concept Module = std::derived_from<T, ModuleBase>;
-
-struct ModuleServiceConfig
+namespace dpp
 {
-    bool caseSensitiveLookup{};
-    char commandPrefix = '!';
-    char separatorChar = ' ';
-};
+    class cluster;
+    class command_info;
+    class message_create_t;
+    class module_base;
+    class precondition_result;
 
-class ModuleService
-{
-public:
-    ModuleService(dpp::cluster* cluster, ModuleServiceConfig config = {})
-        : m_cluster(cluster), m_config(config) {}
+    template<typename T>
+    concept module_derivative = std::derived_from<T, module_base>;
 
-    TASK(PreconditionResult) genPreconditionResult(const CommandInfo& command, const dpp::message_create_t* event);
-    TASK(CommandResult) handleMessage(const dpp::message_create_t* event);
+    struct module_service_config
+    {
+        bool case_sensitive_lookup{};
+        char command_prefix = '!';
+        char separator_char = ' ';
+    };
 
-    std::span<const std::unique_ptr<ModuleBase>> modules() const;
+    class module_service
+    {
+    public:
+        module_service(cluster* cluster, module_service_config config = {})
+            : m_cluster(cluster), m_config(config) {}
 
-    std::vector<std::reference_wrapper<const CommandInfo>> searchCommand(std::string_view name) const;
-    std::vector<std::reference_wrapper<const ModuleBase>> searchModule(std::string_view name) const;
+        TASK(precondition_result) gen_precondition_result(const command_info& command, const message_create_t* event);
+        TASK(command_result) handle_message(const message_create_t* event);
 
-    template<Module M>
-    void registerModule()
-    { m_modules.push_back(std::make_unique<M>()); }
+        std::span<const std::unique_ptr<module_base>> modules() const;
 
-    template<Module... Modules>
-    void registerModules()
-    { (m_modules.push_back(std::make_unique<Modules>()), ...); }
-private:
-    dpp::cluster* m_cluster;
-    ModuleServiceConfig m_config;
-    std::vector<std::unique_ptr<ModuleBase>> m_modules;
+        std::vector<std::reference_wrapper<const command_info>> search_command(std::string_view name) const;
+        std::vector<std::reference_wrapper<const module_base>> search_module(std::string_view name) const;
 
-    TASK(CommandResult) runCommand(const dpp::message_create_t* event, std::string_view name,
-               std::deque<std::string>&& args);
-};
+        template<module_derivative M>
+        void register_module()
+        { m_modules.push_back(std::make_unique<M>()); }
+
+        template<module_derivative... Modules>
+        void register_modules()
+        { (m_modules.push_back(std::make_unique<Modules>()), ...); }
+    private:
+        cluster* m_cluster;
+        module_service_config m_config;
+        std::vector<std::unique_ptr<module_base>> m_modules;
+
+        TASK(command_result) run_command(const message_create_t* event, std::string_view name,
+                                         std::deque<std::string>&& args);
+    };
+}
 
 #endif // MODULESERVICE_H

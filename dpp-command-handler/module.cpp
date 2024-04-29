@@ -1,18 +1,21 @@
 #include "module.h"
 #include <format>
 
-bad_command_argument::bad_command_argument(CommandError error, std::string_view arg, size_t argIndex,
-                                           std::string_view module, std::string_view command, std::string_view message)
-    : m_error(error), m_message(std::format(
-        "{}::{}: Failed to convert argument {} ({}): {}",
-        module, command, argIndex, arg, message
-      )) {}
-
-std::vector<std::reference_wrapper<const CommandInfo>> ModuleBase::commands() const
+namespace dpp
 {
-    std::vector<std::reference_wrapper<const CommandInfo>> out;
-    out.reserve(m_commands.size());
-    for (const auto& [info, _] : m_commands)
-        out.push_back(std::cref(info));
-    return out;
+    bad_command_argument::bad_command_argument(command_error error, std::string_view arg, size_t index,
+                                               std::string_view module, std::string_view command, std::string_view message)
+        : m_error(error), m_message(std::format(
+            "{}::{}: Failed to convert argument {} ({}): {}",
+            module, command, index, arg, message
+          )) {}
+
+    std::vector<std::reference_wrapper<const command_info>> module_base::commands() const
+    {
+        std::vector<std::reference_wrapper<const command_info>> out;
+        out.reserve(m_commands.size());
+        for (const auto& [info, _] : m_commands)
+            out.push_back(std::cref(info));
+        return out;
+    }
 }

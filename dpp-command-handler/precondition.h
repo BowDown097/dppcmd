@@ -3,14 +3,18 @@
 #include "results/preconditionresult.h"
 #include "utils/ezcoro.h"
 
-class ModuleService;
-namespace dpp { class cluster; class message_create_t; }
-
-struct Precondition
+namespace dpp
 {
-    virtual TASK(PreconditionResult) check(dpp::cluster* cluster, const dpp::message_create_t* context,
-                                           const ModuleService* service)
-    { RETURN(PreconditionResult::fromSuccess()); }
-};
+    class cluster;
+    class message_create_t;
+    class module_service;
+
+    struct precondition
+    {
+        virtual TASK(precondition_result) check(cluster* cluster, const message_create_t* context,
+                                                const module_service* service)
+        { RETURN(precondition_result::from_success()); }
+    };
+}
 
 #endif // PRECONDITION_H

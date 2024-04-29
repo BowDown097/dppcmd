@@ -2,24 +2,27 @@
 #define COMMANDRESULT_H
 #include "result.h"
 
-class CommandResult : public DppResult
+namespace dpp
 {
-public:
-    static CommandResult fromSuccess(std::string_view message = "")
-    { return CommandResult(std::nullopt, message); }
+    class command_result : public result
+    {
+    public:
+        static command_result from_success(std::string_view message = "")
+        { return command_result(std::nullopt, message); }
 
-    static CommandResult fromError(std::string_view message = "")
-    { return CommandResult(CommandError::Unsuccessful, message); }
+        static command_result from_error(std::string_view message = "")
+        { return command_result(command_error::unsuccessful, message); }
 
-    static CommandResult fromError(const std::exception& e)
-    { return CommandResult(CommandError::Exception, e.what()); }
+        static command_result from_error(const std::exception& e)
+        { return command_result(command_error::exception, e.what()); }
 
-    static CommandResult fromError(CommandError error, std::string_view message)
-    { return CommandResult(error, message); }
+        static command_result from_error(command_error error, std::string_view message)
+        { return command_result(error, message); }
 
-    CommandResult() = default;
-private:
-    CommandResult(const std::optional<CommandError>& error, std::string_view message) : DppResult(error, message) {}
-};
+        command_result() = default;
+    private:
+        command_result(const std::optional<command_error>& error, std::string_view message) : result(error, message) {}
+    };
+}
 
 #endif // COMMANDRESULT_H

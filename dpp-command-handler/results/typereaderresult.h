@@ -2,18 +2,21 @@
 #define TYPEREADERRESULT_H
 #include "result.h"
 
-class TypeReaderResult : public DppResult
+namespace dpp
 {
-public:
-    static TypeReaderResult fromSuccess(std::string_view message = "")
-    { return TypeReaderResult(std::nullopt, message); }
+    class type_reader_result : public result
+    {
+    public:
+        static type_reader_result from_success(std::string_view message = "")
+        { return type_reader_result(std::nullopt, message); }
 
-    static TypeReaderResult fromError(CommandError error, std::string_view message)
-    { return TypeReaderResult(error, message); }
+        static type_reader_result from_error(command_error error, std::string_view message)
+        { return type_reader_result(error, message); }
 
-    TypeReaderResult() = default;
-private:
-    TypeReaderResult(const std::optional<CommandError>& error, std::string_view message) : DppResult(error, message) {}
-};
+        type_reader_result() = default;
+    private:
+        type_reader_result(const std::optional<command_error>& error, std::string_view message) : result(error, message) {}
+    };
+}
 
 #endif // TYPEREADERRESULT_H

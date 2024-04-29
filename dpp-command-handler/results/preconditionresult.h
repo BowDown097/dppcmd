@@ -2,24 +2,27 @@
 #define PRECONDITIONRESULT_H
 #include "result.h"
 
-class PreconditionResult : public DppResult
+namespace dpp
 {
-public:
-    static PreconditionResult fromSuccess(std::string_view message = "")
-    { return PreconditionResult(std::nullopt, message); }
+    class precondition_result : public result
+    {
+    public:
+        static precondition_result from_success(std::string_view message = "")
+        { return precondition_result(std::nullopt, message); }
 
-    static PreconditionResult fromError(std::string_view message = "")
-    { return PreconditionResult(CommandError::UnmetPrecondition, message); }
+        static precondition_result from_error(std::string_view message = "")
+        { return precondition_result(command_error::unmet_precondition, message); }
 
-    static PreconditionResult fromError(const std::exception& e)
-    { return PreconditionResult(CommandError::Exception, e.what()); }
+        static precondition_result from_error(const std::exception& e)
+        { return precondition_result(command_error::exception, e.what()); }
 
-    static PreconditionResult fromError(CommandError error, std::string_view message)
-    { return PreconditionResult(error, message); }
+        static precondition_result from_error(command_error error, std::string_view message)
+        { return precondition_result(error, message); }
 
-    PreconditionResult() = default;
-private:
-    PreconditionResult(const std::optional<CommandError>& error, std::string_view message) : DppResult(error, message) {}
-};
+        precondition_result() = default;
+    private:
+        precondition_result(const std::optional<command_error>& error, std::string_view message) : result(error, message) {}
+    };
+}
 
 #endif // PRECONDITIONRESULT_H

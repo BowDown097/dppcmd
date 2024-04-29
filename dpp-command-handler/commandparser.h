@@ -5,9 +5,9 @@
 
 namespace dpp
 {
-    namespace commandparser
+    namespace command_parser
     {
-        std::deque<std::string> parseArguments(std::string_view input, char sep);
+        std::deque<std::string> parse(std::string_view input, char sep);
     }
 }
 

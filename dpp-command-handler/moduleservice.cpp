@@ -6,113 +6,116 @@
 #include <dpp/dispatcher.h>
 #include <format>
 
-TASK(PreconditionResult) ModuleService::genPreconditionResult(const CommandInfo& command,
-                                                              const dpp::message_create_t* event)
+namespace dpp
 {
-    if (command.preconditions().empty())
-        RETURN(PreconditionResult::fromSuccess());
-
-    std::optional<CommandError> finalError;
-    std::vector<std::string> messages;
-
-    for (Precondition& precond : command.preconditions())
+    TASK(precondition_result) module_service::gen_precondition_result(const command_info& command,
+                                                                      const message_create_t* event)
     {
-        PreconditionResult result = AWAIT(precond.check(m_cluster, event, this));
-        if (result.success())
-            continue;
+        if (command.preconditions().empty())
+            RETURN(precondition_result::from_success());
 
-        CommandError error = result.error().value();
-        if (finalError)
+        std::optional<command_error> finalError;
+        std::vector<std::string> messages;
+
+        for (precondition& precond : command.preconditions())
         {
-            if (finalError != error)
-            {
-                finalError = CommandError::Unsuccessful;
-            }
-        }
-        else
-        {
-            finalError = error;
-        }
-
-        messages.push_back(result.message());
-    }
-
-    if (finalError)
-        RETURN(PreconditionResult::fromError(finalError.value(), dpp::utility::join(messages, "\n")));
-
-    RETURN(PreconditionResult::fromSuccess());
-}
-
-TASK(CommandResult) ModuleService::handleMessage(const dpp::message_create_t* event)
-{
-    // not really a success, but we don't really want to trigger any error handler so this will suffice.
-    if (!event->msg.content.starts_with(m_config.commandPrefix))
-        RETURN(CommandResult::fromSuccess());
-
-    std::deque<std::string> args = dpp::commandparser::parseArguments(event->msg.content, m_config.separatorChar);
-
-    std::string inputCommandName = args.front();
-    inputCommandName.erase(inputCommandName.cbegin());
-    args.pop_front();
-
-    RETURN(AWAIT(runCommand(event, inputCommandName, std::move(args))));
-}
-
-std::span<const std::unique_ptr<ModuleBase>> ModuleService::modules() const
-{
-    return m_modules;
-}
-
-TASK(CommandResult) ModuleService::runCommand(const dpp::message_create_t* event, std::string_view name,
-                                              std::deque<std::string>&& args)
-{
-    for (std::unique_ptr<ModuleBase>& module : m_modules)
-    {
-        for (const auto& [info, function] : module->m_commands)
-        {
-            if (!info.matches(name, m_config.caseSensitiveLookup))
+            precondition_result result = AWAIT(precond.check(m_cluster, event, this));
+            if (result.success())
                 continue;
 
-            PreconditionResult precond = AWAIT(genPreconditionResult(info, event));
-            if (!precond.success())
-                RETURN(CommandResult::fromError(precond.error().value(), precond.message()));
-
-            if (args.size() >= function->targetArgCount()) // >= to count optional arguments
+            command_error error = result.error().value();
+            if (finalError)
             {
-                RETURN(AWAIT(module->createInstanceAndRun(function.get(), m_cluster, event, this, std::move(args))));
+                if (finalError != error)
+                {
+                    finalError = command_error::unsuccessful;
+                }
             }
             else
             {
-                RETURN(CommandResult::fromError(CommandError::BadArgCount, std::format(
-                    "{}{}: Ran with {} arguments, expects at least {}",
-                    m_config.commandPrefix, name, args.size(), function->targetArgCount()
-                )));
+                finalError = error;
             }
+
+            messages.push_back(result.message());
         }
+
+        if (finalError)
+            RETURN(precondition_result::from_error(finalError.value(), utility::join(messages, "\n")));
+
+        RETURN(precondition_result::from_success());
     }
 
-    RETURN(CommandResult::fromError(CommandError::UnknownCommand, name));
-}
+    TASK(command_result) module_service::handle_message(const message_create_t* event)
+    {
+        // not really a success, but we don't really want to trigger any error handler so this will suffice.
+        if (!event->msg.content.starts_with(m_config.command_prefix))
+            RETURN(command_result::from_success());
 
-std::vector<std::reference_wrapper<const CommandInfo>> ModuleService::searchCommand(std::string_view name) const
-{
-    std::vector<std::reference_wrapper<const CommandInfo>> out;
+        std::deque<std::string> args = command_parser::parse(event->msg.content, m_config.separator_char);
 
-    for (const std::unique_ptr<ModuleBase>& module : m_modules)
-        for (const auto& [info, _] : module->m_commands)
-            if (info.matches(name, m_config.caseSensitiveLookup))
-                out.push_back(std::cref(info));
+        std::string inputCommandName = args.front();
+        inputCommandName.erase(inputCommandName.cbegin());
+        args.pop_front();
 
-    return out;
-}
+        RETURN(AWAIT(run_command(event, inputCommandName, std::move(args))));
+    }
 
-std::vector<std::reference_wrapper<const ModuleBase>> ModuleService::searchModule(std::string_view name) const
-{
-    std::vector<std::reference_wrapper<const ModuleBase>> out;
+    std::span<const std::unique_ptr<module_base>> module_service::modules() const
+    {
+        return m_modules;
+    }
 
-    for (const std::unique_ptr<ModuleBase>& module : m_modules)
-        if (dpp::utility::sequals(module->name(), name, m_config.caseSensitiveLookup))
-            out.push_back(std::cref(*module));
+    TASK(command_result) module_service::run_command(const message_create_t* event, std::string_view name,
+                                                     std::deque<std::string>&& args)
+    {
+        for (std::unique_ptr<module_base>& module : m_modules)
+        {
+            for (const auto& [info, function] : module->m_commands)
+            {
+                if (!info.matches(name, m_config.case_sensitive_lookup))
+                    continue;
 
-    return out;
+                precondition_result precond = AWAIT(gen_precondition_result(info, event));
+                if (!precond.success())
+                    RETURN(command_result::from_error(precond.error().value(), precond.message()));
+
+                if (args.size() >= function->target_arg_count()) // >= to count optional arguments
+                {
+                    RETURN(AWAIT(module->create_instance_and_run(function.get(), m_cluster, event, this, std::move(args))));
+                }
+                else
+                {
+                    RETURN(command_result::from_error(command_error::bad_arg_count, std::format(
+                        "{}{}: Ran with {} arguments, expects at least {}",
+                        m_config.command_prefix, name, args.size(), function->target_arg_count()
+                    )));
+                }
+            }
+        }
+
+        RETURN(command_result::from_error(command_error::unknown_command, name));
+    }
+
+    std::vector<std::reference_wrapper<const command_info>> module_service::search_command(std::string_view name) const
+    {
+        std::vector<std::reference_wrapper<const command_info>> out;
+
+        for (const std::unique_ptr<module_base>& module : m_modules)
+            for (const auto& [info, _] : module->m_commands)
+                if (info.matches(name, m_config.case_sensitive_lookup))
+                    out.push_back(std::cref(info));
+
+        return out;
+    }
+
+    std::vector<std::reference_wrapper<const module_base>> module_service::search_module(std::string_view name) const
+    {
+        std::vector<std::reference_wrapper<const module_base>> out;
+
+        for (const std::unique_ptr<module_base>& module : m_modules)
+            if (utility::sequals(module->name(), name, m_config.case_sensitive_lookup))
+                out.push_back(std::cref(*module));
+
+        return out;
+    }
 }

@@ -1,14 +1,17 @@
 #include "commandinfo.h"
 #include "utils/strings.h"
 
-std::span<const std::string> CommandInfo::aliases() const
+namespace dpp
 {
-    return names().size() > 1 ? names().subspan(1) : std::span<const std::string>();
-}
+    std::span<const std::string> command_info::aliases() const
+    {
+        return names().size() > 1 ? names().subspan(1) : std::span<const std::string>();
+    }
 
-bool CommandInfo::matches(std::string_view name, bool caseSensitive) const
-{
-    return std::ranges::any_of(m_names, [caseSensitive, name](const std::string& n) {
-        return dpp::utility::sequals(n, name, caseSensitive);
-    });
+    bool command_info::matches(std::string_view name, bool case_sensitive) const
+    {
+        return std::ranges::any_of(m_names, [case_sensitive, name](const std::string& n) {
+            return utility::sequals(n, name, case_sensitive);
+        });
+    }
 }

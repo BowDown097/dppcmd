@@ -3,45 +3,48 @@
 #include "precondition.h"
 #include <span>
 
-class ModuleBase;
-
-class CommandInfo
+namespace dpp
 {
-public:
-    CommandInfo(ModuleBase* module, std::initializer_list<std::string> names, std::string_view summary = "",
-                std::string_view remarks = "", const std::vector<Precondition>& preconditions = {})
-        : m_module(module), m_names(names), m_preconditions(preconditions), m_remarks(remarks), m_summary(summary) {}
+    class module_base;
 
-    CommandInfo(ModuleBase* module, const std::string& name, std::string_view summary = "",
-                std::string_view remarks = "", const std::vector<Precondition>& preconditions = {})
-        : CommandInfo(module, std::initializer_list<std::string> { name }, summary, remarks, preconditions) {}
+    class command_info
+    {
+    public:
+        command_info(module_base* module, std::initializer_list<std::string> names, std::string_view summary = "",
+                     std::string_view remarks = "", const std::vector<precondition>& preconditions = {})
+            : m_module(module), m_names(names), m_preconditions(preconditions), m_remarks(remarks), m_summary(summary) {}
 
-    std::span<const std::string> aliases() const;
-    bool matches(std::string_view name, bool caseSensitive) const;
+        command_info(module_base* module, const std::string& name, std::string_view summary = "",
+                     std::string_view remarks = "", const std::vector<precondition>& preconditions = {})
+            : command_info(module, std::initializer_list<std::string> { name }, summary, remarks, preconditions) {}
 
-    const ModuleBase* module() const { return m_module; }
-    std::string name() const { return m_names.front(); }
-    std::span<const std::string> names() const { return m_names; }
-    std::vector<Precondition> preconditions() const { return m_preconditions; }
-    std::string remarks() const { return m_remarks; }
-    std::string summary() const { return m_summary; }
+        std::span<const std::string> aliases() const;
+        bool matches(std::string_view name, bool case_sensitive) const;
 
-    friend inline bool operator==(const CommandInfo& lhs, const CommandInfo& rhs)
-    { return lhs.name() == rhs.name(); }
-    friend inline std::ostream& operator<<(std::ostream& os, const CommandInfo& ci)
-    { return os << ci.name(); }
-private:
-    ModuleBase* m_module;
-    std::vector<std::string> m_names;
-    std::vector<Precondition> m_preconditions;
-    std::string m_remarks;
-    std::string m_summary;
-};
+        const module_base* module() const { return m_module; }
+        std::string name() const { return m_names.front(); }
+        std::span<const std::string> names() const { return m_names; }
+        std::vector<precondition> preconditions() const { return m_preconditions; }
+        std::string remarks() const { return m_remarks; }
+        std::string summary() const { return m_summary; }
+
+        friend inline bool operator==(const command_info& lhs, const command_info& rhs)
+        { return lhs.name() == rhs.name(); }
+        friend inline std::ostream& operator<<(std::ostream& os, const command_info& ci)
+        { return os << ci.name(); }
+    private:
+        module_base* m_module;
+        std::vector<std::string> m_names;
+        std::vector<precondition> m_preconditions;
+        std::string m_remarks;
+        std::string m_summary;
+    };
+}
 
 template<>
-struct std::hash<CommandInfo>
+struct std::hash<dpp::command_info>
 {
-    size_t operator()(const CommandInfo& info) const
+    size_t operator()(const dpp::command_info& info) const
     { return std::hash<std::string>()(info.name()); }
 };
 
