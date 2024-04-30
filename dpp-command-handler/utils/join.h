@@ -1,6 +1,6 @@
 #ifndef JOIN_H
 #define JOIN_H
-#include <string>
+#include "lexical_cast.h"
 
 namespace dpp
 {

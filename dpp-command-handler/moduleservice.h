@@ -2,7 +2,6 @@
 #define MODULESERVICE_H
 #include "results/commandresult.h"
 #include "utils/ezcoro.h"
-#include <deque>
 #include <memory>
 #include <span>
 #include <vector>
@@ -52,7 +51,7 @@ namespace dpp
         std::vector<std::unique_ptr<module_base>> m_modules;
 
         TASK(command_result) run_command(const message_create_t* event, std::string_view name,
-                                         std::deque<std::string>&& args);
+                                         std::vector<std::string>&& args);
     };
 }
 

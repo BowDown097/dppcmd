@@ -7,9 +7,9 @@ namespace dpp
     {
         enum class QuotationState { None, Single, Double };
 
-        std::deque<std::string> parse(std::string_view input, char sep)
+        std::vector<std::string> parse(std::string_view input, char sep)
         {
-            std::deque<std::string> output;
+            std::vector<std::string> out;
 
             bool whitespace = true, escape = false;
             QuotationState quoteState = QuotationState::None;
@@ -30,15 +30,15 @@ namespace dpp
                     {
                         if (whitespace)
                         {
-                            output.emplace_back();
+                            out.emplace_back();
                             whitespace = false;
                         }
                         if (escape)
                         {
                             if (c == '\\' || c == '"' || c == '\'' || c == sep)
-                                output.back().push_back(c);
+                                out.back().push_back(c);
                             else
-                                output.back().push_back('\\');
+                                out.back().push_back('\\');
                         }
                         else if (quoteState != QuotationState::Single && c == '"')
                         {
@@ -50,13 +50,13 @@ namespace dpp
                         }
                         else
                         {
-                            output.back().push_back(c);
+                            out.back().push_back(c);
                         }
                     }
                 }
             }
 
-            return output;
+            return out;
         }
     }
 }

@@ -51,11 +51,11 @@ namespace dpp
         if (!event->msg.content.starts_with(m_config.command_prefix))
             RETURN(command_result::from_success());
 
-        std::deque<std::string> args = command_parser::parse(event->msg.content, m_config.separator_char);
+        std::vector<std::string> args = command_parser::parse(event->msg.content, m_config.separator_char);
 
         std::string inputCommandName = args.front();
         inputCommandName.erase(inputCommandName.cbegin());
-        args.pop_front();
+        args.erase(args.cbegin());
 
         RETURN(AWAIT(run_command(event, inputCommandName, std::move(args))));
     }
@@ -66,7 +66,7 @@ namespace dpp
     }
 
     TASK(command_result) module_service::run_command(const message_create_t* event, std::string_view name,
-                                                     std::deque<std::string>&& args)
+                                                     std::vector<std::string>&& args)
     {
         for (std::unique_ptr<module_base>& module : m_modules)
         {

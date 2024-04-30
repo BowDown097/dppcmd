@@ -1,12 +1,12 @@
 #ifndef MODULE_H
 #define MODULE_H
 #include "commandinfo.h"
+#include "commandfunction.h"
+#include "dpp-command-handler/utils/join.h"
 #include "readers/typereader.h"
 #include "results/commandresult.h"
 #include "utils/lexical_cast.h"
 #include "utils/traits.h"
-#include "commandfunction.h"
-#include <deque>
 
 namespace dpp
 {
@@ -24,8 +24,24 @@ namespace dpp
         std::string m_message;
     };
 
-    template<typename F>
-    concept member_function = std::is_member_function_pointer_v<F>;
+    template<typename T>
+    class remainder
+    {
+    public:
+        using value_type = T;
+
+        template<typename U = T> requires std::is_constructible_v<T, U> && std::is_convertible_v<U, T>
+        constexpr remainder(U&& value) noexcept(std::is_nothrow_constructible_v<T, U>) : m_value(std::move(value)) {}
+
+        constexpr const T* operator->() const noexcept { return std::addressof(m_value); }
+        constexpr T* operator->() noexcept { return std::addressof(m_value); }
+        constexpr const T& operator*() const& noexcept { return m_value; }
+        constexpr T& operator*() & noexcept { return m_value; }
+        constexpr const T&& operator*() const&& noexcept { return std::move(m_value); }
+        constexpr T&& operator*() && noexcept { return std::move(m_value); }
+    private:
+        T m_value;
+    };
 
     template<class Derived>
     concept type_reader_derivative = requires(Derived& t) { []<typename X>(type_reader<X>&){}(t); };
@@ -47,7 +63,8 @@ namespace dpp
         const message_create_t* context;
         const module_service* service;
 
-        void register_command(member_function auto&& f, auto&&... command_info_args)
+        template<typename MemberFunction> requires std::is_member_function_pointer_v<MemberFunction>
+        void register_command(MemberFunction f, auto&&... command_info_args)
         {
             command_info info(this, std::forward<decltype(command_info_args)>(command_info_args)...);
             auto mem_fn = std::mem_fn(f);
@@ -61,7 +78,7 @@ namespace dpp
     #ifdef DPP_CORO
             if constexpr (task_type<ResultType>::value)
             {
-                auto bufferFunc = [this, mem_fn, info](ModuleType module, std::deque<std::string>&& args) -> ResultType {
+                auto bufferFunc = [this, mem_fn, info](ModuleType module, std::vector<std::string>&& args) -> ResultType {
                     auto fnArgs = std::tuple_cat(std::make_tuple(module),
                         module->template convert_args<Args>(std::move(args), info.name()));
                     using TaskResultType = task_type<ResultType>::value_type;
@@ -70,17 +87,17 @@ namespace dpp
                     else
                         co_return co_await std::apply(mem_fn, fnArgs);
                 };
-                func->set(std::function<ResultType(ModuleType, std::deque<std::string>)>(bufferFunc), true);
+                func->set(std::function<ResultType(ModuleType, std::vector<std::string>)>(bufferFunc), true);
             }
             else
             {
     #endif
-                auto bufferFunc = [this, mem_fn, info](ModuleType module, std::deque<std::string>&& args) -> ResultType {
+                auto bufferFunc = [this, mem_fn, info](ModuleType module, std::vector<std::string>&& args) -> ResultType {
                     auto fnArgs = std::tuple_cat(std::make_tuple(module),
                         module->template convert_args<Args>(std::move(args), info.name()));
                     return std::apply(mem_fn, fnArgs);
                 };
-                func->set(std::function<ResultType(ModuleType, std::deque<std::string>)>(bufferFunc));
+                func->set(std::function<ResultType(ModuleType, std::vector<std::string>)>(bufferFunc));
     #ifdef DPP_CORO
             }
     #endif
@@ -106,30 +123,43 @@ namespace dpp
         struct tuple_tail<std::tuple<T, Ts...>> { using type = std::tuple<Ts...>; };
 
         template<class Tuple>
-        auto convert_args(std::deque<std::string>&& args, std::string_view command)
+        auto convert_args(const std::span<const std::string>& args, std::string_view cmd)
         {
-            return [this, args = std::move(args), &command]<size_t... Is>(std::index_sequence<Is...>) {
-                return std::make_tuple(convert_arg<std::tuple_element_t<Is, Tuple>>(
-                    Is < args.size() ? args[Is] : "", Is, command)...);
+            return [this, &args, &cmd]<size_t... Is>(std::index_sequence<Is...>) {
+                return std::make_tuple(convert_arg_at<Tuple, Is>(args, cmd)...);
             }(std::make_index_sequence<std::tuple_size_v<Tuple>>());
         }
 
+        template<class Tuple, size_t I>
+        auto convert_arg_at(const std::span<const std::string>& args, std::string_view cmd)
+        {
+            using ArgType = std::tuple_element_t<I, Tuple>;
+            if constexpr (is_instance<ArgType, remainder>::value)
+                return convert_arg<ArgType>(I < args.size() ? dpp::utility::join(args.subspan(I), " ") : "", I, cmd);
+            else
+                return convert_arg<ArgType>(I < args.size() ? args[I] : "", I, cmd);
+        }
+
         template<typename T>
-        T convert_arg(std::string_view arg, size_t index, std::string_view command)
+        T convert_arg(std::string_view arg, size_t index, std::string_view cmd)
         {
             if constexpr (type_reader_derivative<T>)
             {
                 T typeReader;
                 type_reader_result result = typeReader.read(cluster, context, arg);
                 if (!result.success())
-                    throw bad_command_argument(result.error().value(), arg, index + 1, name(), command, result.message());
+                    throw bad_command_argument(result.error().value(), arg, index + 1, name(), cmd, result.message());
                 return typeReader;
+            }
+            else if constexpr (is_instance<T, remainder>::value)
+            {
+                return convert_arg<typename T::value_type>(arg, index, cmd);
             }
             else if constexpr (is_instance<T, std::optional>::value)
             {
                 if (arg.empty())
                     return std::nullopt;
-                return convert_arg<typename T::value_type>(arg, index, command);
+                return convert_arg<typename T::value_type>(arg, index, cmd);
             }
             else
             {
@@ -139,7 +169,7 @@ namespace dpp
                 }
                 catch (const utility::bad_lexical_cast& e)
                 {
-                    throw bad_command_argument(command_error::parse_failed, arg, index + 1, name(), command, e.what());
+                    throw bad_command_argument(command_error::parse_failed, arg, index + 1, name(), cmd, e.what());
                 }
             }
         }
@@ -160,13 +190,13 @@ namespace dpp
         }
 
         virtual TASK(command_result) create_instance_and_run(command_function* function, dpp::cluster* cluster,
-            const message_create_t* context, const module_service* service, std::deque<std::string>&& args) = 0;
+            const message_create_t* context, const module_service* service, std::vector<std::string>&& args) = 0;
     };
 }
 
 #define MODULE_SETUP(module_name) \
 TASK(dpp::command_result) create_instance_and_run(dpp::command_function* function, dpp::cluster* cluster, \
-    const dpp::message_create_t* context, const dpp::module_service* service, std::deque<std::string>&& args) override \
+    const dpp::message_create_t* context, const dpp::module_service* service, std::vector<std::string>&& args) override \
 { \
     try \
     { \
