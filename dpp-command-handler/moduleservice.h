@@ -1,8 +1,6 @@
-#ifndef MODULESERVICE_H
-#define MODULESERVICE_H
+#pragma once
 #include "results/commandresult.h"
 #include "utils/ezcoro.h"
-#include <memory>
 #include <span>
 #include <vector>
 
@@ -54,5 +52,3 @@ namespace dpp
                                          std::vector<std::string>&& args);
     };
 }
-
-#endif // MODULESERVICE_H

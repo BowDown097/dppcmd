@@ -1,5 +1,4 @@
-#ifndef EZCORO_H
-#define EZCORO_H
+#pragma once
 
 // this just helps make optional coroutine code more compact
 #ifdef DPP_CORO
@@ -12,5 +11,3 @@
 # define RETURN(res) return res
 # define TASK(ReturnType) ReturnType
 #endif
-
-#endif // EZCORO_H

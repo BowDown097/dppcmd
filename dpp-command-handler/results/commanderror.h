@@ -1,5 +1,4 @@
-#ifndef COMMANDERROR_H
-#define COMMANDERROR_H
+#pragma once
 #include <ostream>
 
 namespace dpp
@@ -39,5 +38,3 @@ inline std::ostream& operator<<(std::ostream& os, const dpp::command_error ce)
 
     return os;
 }
-
-#endif // COMMANDERROR_H

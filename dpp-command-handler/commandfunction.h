@@ -1,7 +1,7 @@
-#ifndef COMMANDFUNCTION_H
-#define COMMANDFUNCTION_H
+#pragma once
 #include <functional>
 #include <memory>
+
 #ifdef DPP_CORO
 # include <dpp/coro/task.h>
 #endif
@@ -79,5 +79,3 @@ namespace dpp
         std::unique_ptr<variant_function_wrapper_base> m_wrapper;
     };
 }
-
-#endif // COMMANDFUNCTION_H

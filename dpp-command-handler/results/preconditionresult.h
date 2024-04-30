@@ -1,5 +1,4 @@
-#ifndef PRECONDITIONRESULT_H
-#define PRECONDITIONRESULT_H
+#pragma once
 #include "result.h"
 
 namespace dpp
@@ -24,5 +23,3 @@ namespace dpp
         precondition_result(const std::optional<command_error>& error, std::string_view message) : result(error, message) {}
     };
 }
-
-#endif // PRECONDITIONRESULT_H

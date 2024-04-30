@@ -1,5 +1,4 @@
-#ifndef RESULT_H
-#define RESULT_H
+#pragma once
 #include "commanderror.h"
 #include <optional>
 #include <string>
@@ -20,5 +19,3 @@ namespace dpp
             : m_error(error), m_message(message) {}
     };
 }
-
-#endif // RESULT_H

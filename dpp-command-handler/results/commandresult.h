@@ -1,5 +1,4 @@
-#ifndef COMMANDRESULT_H
-#define COMMANDRESULT_H
+#pragma once
 #include "result.h"
 
 namespace dpp
@@ -24,5 +23,3 @@ namespace dpp
         command_result(const std::optional<command_error>& error, std::string_view message) : result(error, message) {}
     };
 }
-
-#endif // COMMANDRESULT_H

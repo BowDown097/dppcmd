@@ -1,5 +1,4 @@
-#ifndef COMMANDPARSER_H
-#define COMMANDPARSER_H
+#pragma once
 #include <string>
 #include <vector>
 
@@ -10,5 +9,3 @@ namespace dpp
         std::vector<std::string> parse(std::string_view input, char sep);
     }
 }
-
-#endif // COMMANDPARSER_H

@@ -1,5 +1,4 @@
-#ifndef TYPEREADERRESULT_H
-#define TYPEREADERRESULT_H
+#pragma once
 #include "result.h"
 
 namespace dpp
@@ -18,5 +17,3 @@ namespace dpp
         type_reader_result(const std::optional<command_error>& error, std::string_view message) : result(error, message) {}
     };
 }
-
-#endif // TYPEREADERRESULT_H

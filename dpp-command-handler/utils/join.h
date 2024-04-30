@@ -1,5 +1,4 @@
-#ifndef JOIN_H
-#define JOIN_H
+#pragma once
 #include "lexical_cast.h"
 
 namespace dpp
@@ -28,5 +27,3 @@ namespace dpp
         }
     }
 }
-
-#endif // JOIN_H

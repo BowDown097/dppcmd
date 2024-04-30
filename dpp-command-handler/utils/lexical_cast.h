@@ -1,5 +1,4 @@
-#ifndef LEXICAL_CAST_H
-#define LEXICAL_CAST_H
+#pragma once
 #include <charconv>
 #include <sstream>
 
@@ -157,5 +156,3 @@ namespace dpp
         }
     }
 }
-
-#endif // LEXICAL_CAST_H

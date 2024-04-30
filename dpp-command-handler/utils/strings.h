@@ -1,5 +1,4 @@
-#ifndef STRINGS_H
-#define STRINGS_H
+#pragma once
 #include <string_view>
 
 namespace dpp
@@ -10,5 +9,3 @@ namespace dpp
         bool sequals(std::string_view s1, std::string_view s2, bool caseSensitive);
     }
 }
-
-#endif // STRINGS_H

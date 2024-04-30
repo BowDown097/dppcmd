@@ -1,10 +1,9 @@
-#ifndef MODULE_H
-#define MODULE_H
-#include "commandinfo.h"
+#pragma once
 #include "commandfunction.h"
-#include "dpp-command-handler/utils/join.h"
+#include "commandinfo.h"
 #include "readers/typereader.h"
 #include "results/commandresult.h"
+#include "utils/join.h"
 #include "utils/lexical_cast.h"
 #include "utils/traits.h"
 
@@ -135,7 +134,7 @@ namespace dpp
         {
             using ArgType = std::tuple_element_t<I, Tuple>;
             if constexpr (is_instance<ArgType, remainder>::value)
-                return convert_arg<ArgType>(I < args.size() ? dpp::utility::join(args.subspan(I), " ") : "", I, cmd);
+                return convert_arg<ArgType>(I < args.size() ? utility::join(args.subspan(I), " ") : "", I, cmd);
             else
                 return convert_arg<ArgType>(I < args.size() ? args[I] : "", I, cmd);
         }
@@ -218,5 +217,3 @@ TASK(dpp::command_result) create_instance_and_run(dpp::command_function* functio
         RETURN(dpp::command_result::from_error(e)); \
     } \
 }
-
-#endif // MODULE_H

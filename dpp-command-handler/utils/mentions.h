@@ -1,5 +1,4 @@
-#ifndef MENTIONS_H
-#define MENTIONS_H
+#pragma once
 #include <cstdint>
 #include <string_view>
 
@@ -12,5 +11,3 @@ namespace dpp
         uint64_t parse_user_mention(std::string_view str);
     }
 }
-
-#endif // MENTIONS_H

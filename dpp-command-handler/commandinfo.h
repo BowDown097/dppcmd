@@ -1,5 +1,4 @@
-#ifndef COMMANDINFO_H
-#define COMMANDINFO_H
+#pragma once
 #include "precondition.h"
 #include <span>
 
@@ -47,5 +46,3 @@ struct std::hash<dpp::command_info>
     size_t operator()(const dpp::command_info& info) const
     { return std::hash<std::string>()(info.name()); }
 };
-
-#endif // COMMANDINFO_H

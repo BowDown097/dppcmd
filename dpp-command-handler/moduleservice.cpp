@@ -1,7 +1,6 @@
 #include "moduleservice.h"
 #include "commandparser.h"
 #include "module.h"
-#include "utils/join.h"
 #include "utils/strings.h"
 #include <dpp/dispatcher.h>
 #include <format>

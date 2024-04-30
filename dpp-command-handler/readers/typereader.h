@@ -1,5 +1,4 @@
-#ifndef TYPEREADER_H
-#define TYPEREADER_H
+#pragma once
 #include "dpp-command-handler/results/typereaderresult.h"
 #include <span>
 #include <vector>
@@ -51,5 +50,3 @@ namespace dpp
         std::vector<type_reader_value<T>> m_results;
     };
 }
-
-#endif // TYPEREADER_H

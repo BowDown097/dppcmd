@@ -1,5 +1,4 @@
-#ifndef PRECONDITION_H
-#define PRECONDITION_H
+#pragma once
 #include "results/preconditionresult.h"
 #include "utils/ezcoro.h"
 
@@ -16,5 +15,3 @@ namespace dpp
         { RETURN(precondition_result::from_success()); }
     };
 }
-
-#endif // PRECONDITION_H
