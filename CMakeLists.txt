@@ -18,8 +18,10 @@ target_sources(dpp-command-handler
         dpp-command-handler/module.cpp
         dpp-command-handler/moduleservice.cpp
         dpp-command-handler/readers/channeltypereader.cpp
+        dpp-command-handler/readers/guildmembertypereader.cpp
         dpp-command-handler/readers/roletypereader.cpp
         dpp-command-handler/readers/usertypereader.cpp
+        dpp-command-handler/utils/cache.cpp
         dpp-command-handler/utils/lexical_cast.cpp
         dpp-command-handler/utils/mentions.cpp
         dpp-command-handler/utils/strings.cpp
@@ -32,6 +34,7 @@ target_sources(dpp-command-handler
             dpp-command-handler/moduleservice.h
             dpp-command-handler/precondition.h
             dpp-command-handler/readers/channeltypereader.h
+            dpp-command-handler/readers/guildmembertypereader.h
             dpp-command-handler/readers/roletypereader.h
             dpp-command-handler/readers/typereader.h
             dpp-command-handler/readers/usertypereader.h
@@ -40,6 +43,7 @@ target_sources(dpp-command-handler
             dpp-command-handler/results/preconditionresult.h
             dpp-command-handler/results/result.h
             dpp-command-handler/results/typereaderresult.h
+            dpp-command-handler/utils/cache.h
             dpp-command-handler/utils/ezcoro.h
             dpp-command-handler/utils/join.h
             dpp-command-handler/utils/lexical_cast.h
