@@ -7,6 +7,26 @@
 #include "utils/lexical_cast.h"
 #include "utils/traits.h"
 
+namespace _detail
+{
+    template<typename, template<typename...> typename>
+    struct is_instance : std::false_type {};
+    template<template<typename...> typename U, typename... Ts>
+    struct is_instance<U<Ts...>, U> : std::true_type {};
+    template<typename T, template<typename...> typename U>
+    concept instance_of = is_instance<std::decay_t<T>, U>::value;
+
+    template<typename T>
+    struct tuple_tail {};
+    template<typename T, typename... Ts>
+    struct tuple_tail<std::tuple<T, Ts...>> { using type = std::tuple<Ts...>; };
+    template<class Tuple>
+    using tuple_tail_t = typename tuple_tail<Tuple>::type;
+
+    template<typename T>
+    concept is_type_reader = requires(T& t) { []<typename X>(dpp::type_reader<X>&){}(t); };
+}
+
 namespace dpp
 {
     class module_service;
@@ -42,9 +62,6 @@ namespace dpp
         T m_value;
     };
 
-    template<class Derived>
-    concept type_reader_derivative = requires(Derived& t) { []<typename X>(type_reader<X>&){}(t); };
-
     class module_base
     {
         friend class module_service;
@@ -68,7 +85,7 @@ namespace dpp
             command_info info(this, std::forward<decltype(command_info_args)>(command_info_args)...);
             auto mem_fn = std::mem_fn(f);
             using FTF = function_traits<decltype(mem_fn)>;
-            using Args = tuple_tail<typename FTF::args>::type;
+            using Args = _detail::tuple_tail_t<typename FTF::args>;
             using ModuleType = FTF::template arg<0>::type;
             using ResultType = FTF::result_type;
 
@@ -109,18 +126,6 @@ namespace dpp
         std::string m_name;
         std::string m_summary;
 
-        template<typename, template<typename, typename...> typename>
-        struct is_instance : std::false_type {};
-
-        template<typename... Ts, template<typename, typename...> typename U>
-        struct is_instance<U<Ts...>, U> : std::true_type {};
-
-        template<typename T>
-        struct tuple_tail {};
-
-        template<typename T, typename... Ts>
-        struct tuple_tail<std::tuple<T, Ts...>> { using type = std::tuple<Ts...>; };
-
         template<class Tuple>
         auto convert_args(const std::span<const std::string>& args, std::string_view cmd)
         {
@@ -133,7 +138,7 @@ namespace dpp
         auto convert_arg_at(const std::span<const std::string>& args, std::string_view cmd)
         {
             using ArgType = std::tuple_element_t<I, Tuple>;
-            if constexpr (is_instance<ArgType, remainder>::value)
+            if constexpr (_detail::instance_of<ArgType, remainder>)
                 return convert_arg<ArgType>(I < args.size() ? utility::join(args.subspan(I), " ") : "", I, cmd);
             else
                 return convert_arg<ArgType>(I < args.size() ? args[I] : "", I, cmd);
@@ -142,7 +147,7 @@ namespace dpp
         template<typename T>
         T convert_arg(std::string_view arg, size_t index, std::string_view cmd)
         {
-            if constexpr (type_reader_derivative<T>)
+            if constexpr (_detail::is_type_reader<T>)
             {
                 T typeReader;
                 type_reader_result result = typeReader.read(cluster, context, arg);
@@ -150,11 +155,11 @@ namespace dpp
                     throw bad_command_argument(result.error().value(), arg, index + 1, name(), cmd, result.message());
                 return typeReader;
             }
-            else if constexpr (is_instance<T, remainder>::value)
+            else if constexpr (_detail::instance_of<T, remainder>)
             {
                 return convert_arg<typename T::value_type>(arg, index, cmd);
             }
-            else if constexpr (is_instance<T, std::optional>::value)
+            else if constexpr (_detail::instance_of<T, std::optional>)
             {
                 if (arg.empty())
                     return std::nullopt;
@@ -179,7 +184,7 @@ namespace dpp
             if constexpr (std::tuple_size_v<Tuple> > 0)
             {
                 return []<size_t... Is>(std::index_sequence<Is...>) {
-                    return (... + !is_instance<std::tuple_element_t<Is, Tuple>, std::optional>::value);
+                    return (... + !_detail::instance_of<std::tuple_element_t<Is, Tuple>, std::optional>);
                 }(std::make_index_sequence<std::tuple_size_v<Tuple>>());
             }
             else
