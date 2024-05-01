@@ -3,9 +3,9 @@
 #include "commandinfo.h"
 #include "readers/typereader.h"
 #include "results/commandresult.h"
+#include "utils/function_traits.h"
 #include "utils/join.h"
 #include "utils/lexical_cast.h"
-#include "utils/traits.h"
 
 namespace _detail
 {
@@ -15,13 +15,6 @@ namespace _detail
     struct is_instance<U<Ts...>, U> : std::true_type {};
     template<typename T, template<typename...> typename U>
     concept instance_of = is_instance<std::decay_t<T>, U>::value;
-
-    template<typename T>
-    struct tuple_tail {};
-    template<typename T, typename... Ts>
-    struct tuple_tail<std::tuple<T, Ts...>> { using type = std::tuple<Ts...>; };
-    template<class Tuple>
-    using tuple_tail_t = typename tuple_tail<Tuple>::type;
 
     template<typename T>
     concept is_type_reader = requires(T& t) { []<typename X>(dpp::type_reader<X>&){}(t); };
@@ -84,9 +77,9 @@ namespace dpp
         {
             command_info info(this, std::forward<decltype(command_info_args)>(command_info_args)...);
             auto mem_fn = std::mem_fn(f);
-            using FTF = function_traits<decltype(mem_fn)>;
-            using Args = _detail::tuple_tail_t<typename FTF::args>;
-            using ModuleType = FTF::template arg<0>::type;
+            using FTF = function_traits<MemberFunction>;
+            using Args = FTF::args;
+            using ModuleType = FTF::owner_type;
             using ResultType = FTF::result_type;
 
             auto func = std::make_unique<command_function>();
@@ -97,8 +90,7 @@ namespace dpp
                 auto bufferFunc = [this, mem_fn, info](ModuleType module, std::vector<std::string>&& args) -> ResultType {
                     auto fnArgs = std::tuple_cat(std::make_tuple(module),
                         module->template convert_args<Args>(std::move(args), info.name()));
-                    using TaskResultType = task_type<ResultType>::value_type;
-                    if constexpr (std::is_same_v<TaskResultType, void>)
+                    if constexpr (std::is_same_v<typename task_type<ResultType>::value_type, void>)
                         co_await std::apply(mem_fn, fnArgs);
                     else
                         co_return co_await std::apply(mem_fn, fnArgs);

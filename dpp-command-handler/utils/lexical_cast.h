@@ -33,7 +33,7 @@ namespace dpp
             template<typename T, typename = void>
             struct can_to_chars : std::false_type {};
 
-            template <typename T>
+            template<typename T>
             struct can_to_chars<
                 T, std::void_t<decltype(std::to_chars(std::declval<char*>(), std::declval<char*>(),
                                                       std::declval<std::remove_reference_t<T>>()))>>

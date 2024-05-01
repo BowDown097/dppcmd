@@ -45,11 +45,11 @@ target_sources(dpp-command-handler
             dpp-command-handler/results/result.h
             dpp-command-handler/results/typereaderresult.h
             dpp-command-handler/utils/ezcoro.h
+            dpp-command-handler/utils/function_traits.h
             dpp-command-handler/utils/join.h
             dpp-command-handler/utils/lexical_cast.h
             dpp-command-handler/utils/mentions.h
-            dpp-command-handler/utils/strings.h
-            dpp-command-handler/utils/traits.h)
+            dpp-command-handler/utils/strings.h)
 
 find_package(DPP REQUIRED)
 target_link_libraries(dpp-command-handler PUBLIC dpp::dpp)
