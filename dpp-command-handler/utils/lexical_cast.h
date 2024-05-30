@@ -114,16 +114,17 @@ namespace dpp
                 }
             };
 
-            template<typename Target, typename String> requires std::is_convertible_v<String, std::string_view>
-            struct lexical_caster<Target, String>
+            template<typename Target, typename StringViewLike>
+            requires std::is_convertible_v<StringViewLike, std::string_view>
+            struct lexical_caster<Target, StringViewLike>
             {
-                static Target cast(std::string_view s)
+                static Target cast(StringViewLike s)
                 {
                     if constexpr (can_from_chars<Target>::value)
                     {
                         Target n;
                         if (auto [_, ec] = std::from_chars(s.data(), s.data() + s.size(), n); ec != std::errc())
-                            throw bad_lexical_cast(typeid(String).name(), typeid(Target).name());
+                            throw bad_lexical_cast(typeid(StringViewLike).name(), typeid(Target).name());
                         return n;
                     }
                     else
@@ -131,7 +132,7 @@ namespace dpp
                         std::istringstream ss(s.data());
                         Target t;
                         if ((ss >> t).fail() || !(ss >> std::ws).eof())
-                            throw bad_lexical_cast(typeid(String).name(), typeid(Target).name());
+                            throw bad_lexical_cast(typeid(StringViewLike).name(), typeid(Target).name());
                         return t;
                     }
                 }

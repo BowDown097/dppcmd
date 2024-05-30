@@ -39,7 +39,7 @@ namespace dpp
         }
 
         if (finalError)
-            RETURN(precondition_result::from_error(finalError.value(), utility::join(messages, "\n")));
+            RETURN(precondition_result::from_error(finalError.value(), utility::join(messages, '\n')));
 
         RETURN(precondition_result::from_success());
     }

@@ -16,10 +16,7 @@ struct function_traits_impl<ReturnType(Args...)>
     typedef std::tuple<std::remove_cvref_t<Args>...> args;
 
     template <size_t I>
-    struct arg
-    {
-        typedef std::tuple_element_t<I, args> type;
-    };
+    using arg = std::tuple_element_t<I, args>;
 };
 
 template<typename ReturnType, typename... Args>

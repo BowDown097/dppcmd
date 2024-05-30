@@ -131,7 +131,7 @@ namespace dpp
         {
             using ArgType = std::tuple_element_t<I, Tuple>;
             if constexpr (_detail::instance_of<ArgType, remainder>)
-                return convert_arg<ArgType>(I < args.size() ? utility::join(args.subspan(I), " ") : "", I, cmd);
+                return convert_arg<ArgType>(I < args.size() ? utility::join(args.subspan(I), ' ') : "", I, cmd);
             else
                 return convert_arg<ArgType>(I < args.size() ? args[I] : "", I, cmd);
         }
