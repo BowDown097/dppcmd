@@ -6,19 +6,7 @@
 #include "utils/function_traits.h"
 #include "utils/join.h"
 #include "utils/lexical_cast.h"
-
-namespace _detail
-{
-    template<typename, template<typename...> typename>
-    struct is_instance : std::false_type {};
-    template<template<typename...> typename U, typename... Ts>
-    struct is_instance<U<Ts...>, U> : std::true_type {};
-    template<typename T, template<typename...> typename U>
-    concept instance_of = is_instance<std::decay_t<T>, U>::value;
-
-    template<typename T>
-    concept is_type_reader = requires(T& t) { []<typename X>(dpp::type_reader<X>&){}(t); };
-}
+#include "utils/type_traits.h"
 
 namespace dpp
 {
@@ -130,7 +118,7 @@ namespace dpp
         auto convert_arg_at(const std::span<const std::string>& args, std::string_view cmd)
         {
             using ArgType = std::tuple_element_t<I, Tuple>;
-            if constexpr (_detail::instance_of<ArgType, remainder>)
+            if constexpr (utility::is_specialization_of_v<ArgType, remainder>)
                 return convert_arg<ArgType>(I < args.size() ? utility::join(args.subspan(I), ' ') : "", I, cmd);
             else
                 return convert_arg<ArgType>(I < args.size() ? args[I] : "", I, cmd);
@@ -139,7 +127,7 @@ namespace dpp
         template<typename T>
         T convert_arg(std::string_view arg, size_t index, std::string_view cmd)
         {
-            if constexpr (_detail::is_type_reader<T>)
+            if constexpr (utility::is_type_reader<T>)
             {
                 T typeReader;
                 type_reader_result result = typeReader.read(cluster, context, arg);
@@ -147,11 +135,11 @@ namespace dpp
                     throw bad_command_argument(result.error().value(), arg, index + 1, name(), cmd, result.message());
                 return typeReader;
             }
-            else if constexpr (_detail::instance_of<T, remainder>)
+            else if constexpr (utility::is_specialization_of_v<T, remainder>)
             {
                 return convert_arg<typename T::value_type>(arg, index, cmd);
             }
-            else if constexpr (_detail::instance_of<T, std::optional>)
+            else if constexpr (utility::is_specialization_of_v<T, std::optional>)
             {
                 if (arg.empty())
                     return std::nullopt;
@@ -176,7 +164,7 @@ namespace dpp
             if constexpr (std::tuple_size_v<Tuple> > 0)
             {
                 return []<size_t... Is>(std::index_sequence<Is...>) {
-                    return (... + !_detail::instance_of<std::tuple_element_t<Is, Tuple>, std::optional>);
+                    return (... + !utility::is_specialization_of_v<std::tuple_element_t<Is, Tuple>, std::optional>);
                 }(std::make_index_sequence<std::tuple_size_v<Tuple>>());
             }
             else

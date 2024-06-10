@@ -37,7 +37,7 @@ namespace dpp
         template<typename T>
         T operator()(auto&&... args)
         {
-            using WrapperType = variant_function_wrapper<T, std::decay_t<decltype(args)>...>;
+            using WrapperType = variant_function_wrapper<T, std::remove_cvref_t<decltype(args)>...>;
             WrapperType* fw = dynamic_cast<WrapperType*>(m_wrapper.get());
             if (fw)
                 return fw->func(std::forward<decltype(args)>(args)...);
@@ -49,7 +49,7 @@ namespace dpp
         T operator()(auto&&... args)
         {
             using ValueType = task_type<T>::value_type;
-            using WrapperType = variant_function_wrapper<T, std::decay_t<decltype(args)>...>;
+            using WrapperType = variant_function_wrapper<T, std::remove_cvref_t<decltype(args)>...>;
 
             WrapperType* fw = dynamic_cast<WrapperType*>(m_wrapper.get());
             if (fw)

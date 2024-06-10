@@ -49,4 +49,10 @@ namespace dpp
     private:
         std::vector<type_reader_value<T>> m_results;
     };
+
+    namespace utility
+    {
+        template<typename T>
+        concept is_type_reader = requires(T& t) { []<typename X>(dpp::type_reader<X>&){}(t); };
+    }
 }

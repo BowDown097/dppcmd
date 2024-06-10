@@ -49,7 +49,8 @@ target_sources(dpp-command-handler
             dpp-command-handler/utils/join.h
             dpp-command-handler/utils/lexical_cast.h
             dpp-command-handler/utils/mentions.h
-            dpp-command-handler/utils/strings.h)
+            dpp-command-handler/utils/strings.h
+            dpp-command-handler/utils/type_traits.h)
 
 find_package(DPP REQUIRED)
 target_link_libraries(dpp-command-handler PUBLIC dpp::dpp)
