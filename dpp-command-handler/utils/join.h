@@ -6,10 +6,12 @@ namespace dpp
 {
     namespace utility
     {
-        template<std::ranges::range R, class F, class StringViewOrChar>
-        requires std::same_as<std::invoke_result_t<F&, std::ranges::range_reference_t<R>>, std::string> &&
-                 (std::is_convertible_v<StringViewOrChar, std::string_view> || std::same_as<StringViewOrChar, char>)
-        std::string join(R&& range, StringViewOrChar delim, F&& func)
+        template<typename T>
+        concept StringViewOrChar = std::is_convertible_v<T, std::string_view> || std::same_as<T, char>;
+
+        template<std::ranges::range R, class F>
+        requires std::same_as<std::invoke_result_t<F&, std::ranges::range_reference_t<R>>, std::string>
+        std::string join(R&& range, StringViewOrChar auto&& delim, F&& func)
         {
             if (std::ranges::empty(range))
                 return std::string();
@@ -24,21 +26,31 @@ namespace dpp
             return init;
         }
 
-        template<class StringViewOrChar>
-        requires std::is_convertible_v<StringViewOrChar, std::string_view> || std::same_as<StringViewOrChar, char>
-        std::string join(std::ranges::range auto&& range, StringViewOrChar delim)
+        std::string join(std::ranges::range auto&& range, StringViewOrChar auto&& delim)
         {
             if (std::ranges::empty(range))
                 return std::string();
 
-            std::string init = lexical_cast<std::string>(*std::ranges::begin(range));
-            for (auto it = std::next(std::ranges::begin(range)); it != std::ranges::end(range); ++it)
+            if constexpr (StringViewOrChar<std::ranges::range_value_t<decltype(range)>>)
             {
-                init += delim;
-                init += lexical_cast<std::string>(*it);
+                std::string init(*std::ranges::begin(range));
+                for (auto it = std::next(std::ranges::begin(range)); it != std::ranges::end(range); ++it)
+                {
+                    init += delim;
+                    init += *it;
+                }
+                return init;
             }
-
-            return init;
+            else
+            {
+                std::string init = lexical_cast<std::string>(*std::ranges::begin(range));
+                for (auto it = std::next(std::ranges::begin(range)); it != std::ranges::end(range); ++it)
+                {
+                    init += delim;
+                    init += lexical_cast<std::string>(*it);
+                }
+                return init;
+            }
         }
     }
 }
