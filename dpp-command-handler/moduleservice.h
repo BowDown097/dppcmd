@@ -1,6 +1,7 @@
 #pragma once
 #include "results/commandresult.h"
 #include "utils/ezcoro.h"
+#include <any>
 #include <span>
 #include <vector>
 
@@ -37,8 +38,20 @@ namespace dpp
         std::vector<std::reference_wrapper<const module_base>> search_module(std::string_view name) const;
 
         template<module_derivative M>
-        void register_module()
-        { m_modules.push_back(std::make_unique<M>()); }
+        void register_module(const std::any& extra_data = {})
+        {
+            m_modules.push_back(std::make_unique<M>());
+            if (extra_data.has_value())
+                m_extra_module_data.emplace(m_modules.back().get(), extra_data);
+        }
+
+        template<module_derivative M>
+        void register_module(std::any&& extra_data = {})
+        {
+            m_modules.push_back(std::make_unique<M>());
+            if (extra_data.has_value())
+                m_extra_module_data.emplace(m_modules.back().get(), std::move(extra_data));
+        }
 
         template<module_derivative... Modules>
         void register_modules()
@@ -46,6 +59,7 @@ namespace dpp
     private:
         cluster* m_cluster;
         module_service_config m_config;
+        std::unordered_map<module_base*, std::any> m_extra_module_data;
         std::vector<std::unique_ptr<module_base>> m_modules;
 
         TASK(command_result) run_command(const message_create_t* event, std::string_view name,

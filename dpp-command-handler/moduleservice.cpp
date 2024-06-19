@@ -80,7 +80,15 @@ namespace dpp
 
                 if (args.size() >= function->target_arg_count()) // >= to count optional arguments
                 {
-                    RETURN(AWAIT(module->execute_command(function.get(), m_cluster, event, this, std::move(args))));
+                    if (auto it = m_extra_module_data.find(module.get()); it != m_extra_module_data.end())
+                    {
+                        RETURN(AWAIT(module->execute_command(function.get(), m_cluster, event,
+                                                             this, std::move(args), it->second)));
+                    }
+                    else
+                    {
+                        RETURN(AWAIT(module->execute_command(function.get(), m_cluster, event, this, std::move(args))));
+                    }
                 }
                 else
                 {

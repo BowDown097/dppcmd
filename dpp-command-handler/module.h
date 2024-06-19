@@ -5,8 +5,9 @@
 #include "results/commandresult.h"
 #include "utils/function_traits.h"
 #include "utils/join.h"
-#include "utils/lexical_cast.h"
+#include "utils/strings.h"
 #include "utils/type_traits.h"
+#include <any>
 
 namespace dpp
 {
@@ -174,7 +175,8 @@ namespace dpp
         }
 
         virtual TASK(command_result) execute_command(command_function* function, dpp::cluster* cluster,
-            const message_create_t* context, const module_service* service, std::vector<std::string>&& args) = 0;
+            const message_create_t* context, const module_service* service, std::vector<std::string>&& args,
+            const std::any& extra_data = {}) = 0;
     };
 
     template<typename Derived>
@@ -185,13 +187,15 @@ namespace dpp
             : module_base(name, summary) {}
 
         TASK(command_result) execute_command(command_function* function, dpp::cluster* cluster,
-            const message_create_t* context, const module_service* service, std::vector<std::string>&& args) override
+            const message_create_t* context, const module_service* service, std::vector<std::string>&& args,
+            const std::any& extra_data = {}) override
         {
             try
             {
                 auto instance = std::make_unique<Derived>();
                 instance->cluster = cluster;
                 instance->context = context;
+                instance->m_extra_data = extra_data;
                 instance->service = service;
 
                 if (function->is_coroutine())
@@ -208,5 +212,20 @@ namespace dpp
                 RETURN(dpp::command_result::from_error(e));
             }
         }
+    protected:
+        template<typename T>
+        T extra_data() const
+        {
+            if (!m_extra_data.has_value())
+            {
+                throw std::logic_error("Attempted to get extra data for module " +
+                                       utility::demangle(typeid(Derived).name()) +
+                                       " when no such data exists");
+            }
+
+            return std::any_cast<T>(m_extra_data);
+        }
+    private:
+        std::any m_extra_data;
     };
 }
