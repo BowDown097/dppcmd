@@ -173,32 +173,40 @@ namespace dpp
             }
         }
 
-        virtual TASK(command_result) create_instance_and_run(command_function* function, dpp::cluster* cluster,
+        virtual TASK(command_result) execute_command(command_function* function, dpp::cluster* cluster,
             const message_create_t* context, const module_service* service, std::vector<std::string>&& args) = 0;
     };
-}
 
-#define MODULE_SETUP(module_name) \
-TASK(dpp::command_result) create_instance_and_run(dpp::command_function* function, dpp::cluster* cluster, \
-    const dpp::message_create_t* context, const dpp::module_service* service, std::vector<std::string>&& args) override \
-{ \
-    try \
-    { \
-        auto instance = std::make_unique<module_name>(); \
-        instance->cluster = cluster; \
-        instance->context = context; \
-        instance->service = service; \
-        if (function->is_coroutine()) \
-            RETURN(AWAIT(function->operator()<TASK(dpp::command_result)>(instance.get(), std::move(args)))); \
-        else \
-            RETURN(function->operator()<dpp::command_result>(instance.get(), std::move(args))); \
-    } \
-    catch (const dpp::bad_command_argument& e) \
-    { \
-        RETURN(dpp::command_result::from_error(e.error(), e.what())); \
-    } \
-    catch (const std::exception& e) \
-    { \
-        RETURN(dpp::command_result::from_error(e)); \
-    } \
+    template<typename Derived>
+    class module : public module_base
+    {
+    public:
+        explicit module(std::string_view name, std::string_view summary = "")
+            : module_base(name, summary) {}
+
+        TASK(command_result) execute_command(command_function* function, dpp::cluster* cluster,
+            const message_create_t* context, const module_service* service, std::vector<std::string>&& args) override
+        {
+            try
+            {
+                auto instance = std::make_unique<Derived>();
+                instance->cluster = cluster;
+                instance->context = context;
+                instance->service = service;
+
+                if (function->is_coroutine())
+                    RETURN(AWAIT(function->operator()<TASK(dpp::command_result)>(instance.get(), std::move(args))));
+                else
+                    RETURN(function->operator()<dpp::command_result>(instance.get(), std::move(args)));
+            }
+            catch (const dpp::bad_command_argument& e)
+            {
+                RETURN(dpp::command_result::from_error(e.error(), e.what()));
+            }
+            catch (const std::exception& e)
+            {
+                RETURN(dpp::command_result::from_error(e));
+            }
+        }
+    };
 }
