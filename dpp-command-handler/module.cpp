@@ -15,7 +15,7 @@ namespace dpp
         std::vector<std::reference_wrapper<const command_info>> out;
         out.reserve(m_commands.size());
         for (const auto& [info, _] : m_commands)
-            out.push_back(std::cref(info));
+            out.push_back(info);
         return out;
     }
 }

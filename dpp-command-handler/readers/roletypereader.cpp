@@ -36,7 +36,7 @@ namespace dpp
 
     void role_in::add_results_by_name(const snowflake guild_id, std::string_view input)
     {
-        if (guild* guild = find_guild(guild_id))
+        if (const guild* guild = find_guild(guild_id))
             for (snowflake role_id : guild->roles)
                 if (role* role = find_role(role_id); utility::iequals(role->name, input))
                     return add_result(role, role->name == input ? 0.8f : 0.7f);

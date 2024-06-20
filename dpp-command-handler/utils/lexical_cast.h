@@ -74,6 +74,15 @@ namespace dpp
                 }
             };
 
+            template<>
+            struct lexical_caster<std::string, std::string_view>
+            {
+                static std::string cast(std::string_view s)
+                {
+                    return std::string(s);
+                }
+            };
+
             template<typename Source>
             struct lexical_caster<std::string, Source>
             {

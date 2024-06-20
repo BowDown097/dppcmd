@@ -23,7 +23,7 @@ namespace dpp
 
     void user_in::add_results_by_global_name(const snowflake guild_id, std::string_view input)
     {
-        if (guild* guild = find_guild(guild_id))
+        if (const guild* guild = find_guild(guild_id))
             for (const auto& [_, member] : guild->members)
                 if (user* user = member.get_user(); utility::iequals(user->global_name, input))
                     add_result(user, user->global_name == input ? 0.8f : 0.7f);
@@ -45,7 +45,7 @@ namespace dpp
 
     void user_in::add_results_by_nickname(const snowflake guild_id, std::string_view input)
     {
-        if (guild* guild = find_guild(guild_id))
+        if (const guild* guild = find_guild(guild_id))
             for (const auto& [_, member] : guild->members)
                 if (std::string nickname = member.get_nickname(); utility::iequals(nickname, input))
                     if (user* user = member.get_user())
@@ -54,7 +54,7 @@ namespace dpp
 
     void user_in::add_results_by_username(const snowflake guild_id, std::string_view input)
     {
-        if (guild* guild = find_guild(guild_id))
+        if (const guild* guild = find_guild(guild_id))
             for (const auto& [_, member] : guild->members)
                 if (user* user = member.get_user(); utility::iequals(user->username, input))
                     add_result(user, user->username == input ? 0.8f : 0.7f);

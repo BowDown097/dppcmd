@@ -74,8 +74,8 @@ namespace dpp
             dynamic_cast<WrapperType*>(m_wrapper.get())->func = f;
         }
     private:
-        bool m_is_coroutine;
-        size_t m_target_arg_count;
+        bool m_is_coroutine{};
+        size_t m_target_arg_count{};
         std::unique_ptr<variant_function_wrapper_base> m_wrapper;
     };
 }

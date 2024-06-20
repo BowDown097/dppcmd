@@ -32,7 +32,12 @@ namespace dpp
         using value_type = T;
 
         template<typename U = T> requires std::is_constructible_v<T, U> && std::is_convertible_v<U, T>
-        constexpr remainder(U&& value) noexcept(std::is_nothrow_constructible_v<T, U>) : m_value(std::move(value)) {}
+        constexpr remainder(U&& value) noexcept(std::is_nothrow_constructible_v<T, U>)
+            : m_value(std::move(value)) {}
+
+        template<typename U = T> requires (!(std::is_constructible_v<T, U> && !std::is_convertible_v<U, T>))
+        explicit constexpr remainder(U&& value) noexcept(std::is_nothrow_constructible_v<T, U>)
+            : m_value(std::move(value)) {}
 
         constexpr const T* operator->() const noexcept { return std::addressof(m_value); }
         constexpr T* operator->() noexcept { return std::addressof(m_value); }
@@ -52,14 +57,14 @@ namespace dpp
         virtual ~module_base() = default;
 
         std::vector<std::reference_wrapper<const command_info>> commands() const;
-        std::string name() const { return m_name; }
-        std::string summary() const { return m_summary; }
+        const std::string& name() const { return m_name; }
+        const std::string& summary() const { return m_summary; }
 
         friend inline std::ostream& operator<<(std::ostream& os, const module_base& m) { return os << m.name(); }
     protected:
-        dpp::cluster* cluster;
-        const message_create_t* context;
-        const module_service* service;
+        dpp::cluster* cluster{};
+        const message_create_t* context{};
+        const module_service* service{};
 
         template<typename MemberFunction> requires std::is_member_function_pointer_v<MemberFunction>
         void register_command(MemberFunction f, auto&&... command_info_args)
@@ -174,7 +179,7 @@ namespace dpp
             }
         }
 
-        virtual TASK(command_result) execute_command(command_function* function, dpp::cluster* cluster,
+        virtual TASK(command_result) exec(command_function* function, dpp::cluster* cluster,
             const message_create_t* context, const module_service* service, std::vector<std::string>&& args,
             const std::any& extra_data = {}) = 0;
     };
@@ -186,7 +191,7 @@ namespace dpp
         explicit module(std::string_view name, std::string_view summary = "")
             : module_base(name, summary) {}
 
-        TASK(command_result) execute_command(command_function* function, dpp::cluster* cluster,
+        TASK(command_result) exec(command_function* function, dpp::cluster* cluster,
             const message_create_t* context, const module_service* service, std::vector<std::string>&& args,
             const std::any& extra_data = {}) override
         {
@@ -199,17 +204,17 @@ namespace dpp
                 instance->service = service;
 
                 if (function->is_coroutine())
-                    RETURN(AWAIT(function->operator()<TASK(dpp::command_result)>(instance.get(), std::move(args))));
+                    RETURN(AWAIT(function->operator()<TASK(command_result)>(instance.get(), std::move(args))));
                 else
-                    RETURN(function->operator()<dpp::command_result>(instance.get(), std::move(args)));
+                    RETURN(function->operator()<command_result>(instance.get(), std::move(args)));
             }
-            catch (const dpp::bad_command_argument& e)
+            catch (const bad_command_argument& e)
             {
-                RETURN(dpp::command_result::from_error(e.error(), e.what()));
+                RETURN(command_result::from_error(e.error(), e.what()));
             }
             catch (const std::exception& e)
             {
-                RETURN(dpp::command_result::from_error(e));
+                RETURN(command_result::from_error(e));
             }
         }
     protected:

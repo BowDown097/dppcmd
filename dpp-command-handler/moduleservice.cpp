@@ -7,8 +7,7 @@
 
 namespace dpp
 {
-    TASK(precondition_result) module_service::gen_precondition_result(const command_info& command,
-                                                                      const message_create_t* event)
+    TASK(precondition_result) module_service::gen_precondition_result(command_info& command, const message_create_t* event)
     {
         if (command.preconditions().empty())
             RETURN(precondition_result::from_success());
@@ -69,7 +68,7 @@ namespace dpp
     {
         for (std::unique_ptr<module_base>& module : m_modules)
         {
-            for (const auto& [info, function] : module->m_commands)
+            for (auto& [info, function] : module->m_commands)
             {
                 if (!info.matches(name, m_config.case_sensitive_lookup))
                     continue;
@@ -81,14 +80,9 @@ namespace dpp
                 if (args.size() >= function->target_arg_count()) // >= to count optional arguments
                 {
                     if (auto it = m_extra_module_data.find(module.get()); it != m_extra_module_data.end())
-                    {
-                        RETURN(AWAIT(module->execute_command(function.get(), m_cluster, event,
-                                                             this, std::move(args), it->second)));
-                    }
+                        RETURN(AWAIT(module->exec(function.get(), m_cluster, event, this, std::move(args), it->second)));
                     else
-                    {
-                        RETURN(AWAIT(module->execute_command(function.get(), m_cluster, event, this, std::move(args))));
-                    }
+                        RETURN(AWAIT(module->exec(function.get(), m_cluster, event, this, std::move(args))));
                 }
                 else
                 {
@@ -110,7 +104,7 @@ namespace dpp
         for (const std::unique_ptr<module_base>& module : m_modules)
             for (const auto& [info, _] : module->m_commands)
                 if (info.matches(name, m_config.case_sensitive_lookup))
-                    out.push_back(std::cref(info));
+                    out.push_back(info);
 
         return out;
     }
@@ -121,7 +115,7 @@ namespace dpp
 
         for (const std::unique_ptr<module_base>& module : m_modules)
             if (utility::sequals(module->name(), name, m_config.case_sensitive_lookup))
-                out.push_back(std::cref(*module));
+                out.push_back(*module);
 
         return out;
     }

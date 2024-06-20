@@ -26,10 +26,10 @@ namespace dpp
     class module_service
     {
     public:
-        module_service(cluster* cluster, module_service_config config = {})
+        explicit module_service(cluster* cluster, module_service_config config = {})
             : m_cluster(cluster), m_config(config) {}
 
-        TASK(precondition_result) gen_precondition_result(const command_info& command, const message_create_t* event);
+        TASK(precondition_result) gen_precondition_result(command_info& command, const message_create_t* event);
         TASK(command_result) handle_message(const message_create_t* event);
 
         std::span<const std::unique_ptr<module_base>> modules() const;

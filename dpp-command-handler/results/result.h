@@ -9,7 +9,7 @@ namespace dpp
     {
     public:
         std::optional<command_error> error() const { return m_error; }
-        std::string message() const { return m_message; }
+        const std::string& message() const { return m_message; }
         bool success() const { return !m_error; }
         result() : m_error(std::nullopt) {}
     protected:

@@ -37,7 +37,7 @@ namespace dpp
 
     void channel_in::add_results_by_name(const snowflake guild_id, std::string_view input)
     {
-        if (guild* guild = find_guild(guild_id))
+        if (const guild* guild = find_guild(guild_id))
             for (snowflake channel_id : guild->channels)
                 if (channel* channel = find_channel(channel_id); utility::iequals(channel->name, input))
                     return add_result(channel, channel->name == input ? 0.8f : 0.7f);

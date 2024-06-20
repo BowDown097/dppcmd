@@ -34,7 +34,7 @@ namespace dpp
 
     user* find_guild_user(const snowflake guild_id, const snowflake user_id)
     {
-        if (guild* guild = find_guild(guild_id))
+        if (const guild* guild = find_guild(guild_id))
             for (const auto& [id, member] : guild->members)
                 if (id == user_id)
                     return member.get_user();

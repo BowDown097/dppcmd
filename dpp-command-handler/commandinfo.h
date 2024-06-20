@@ -21,11 +21,13 @@ namespace dpp
         bool matches(std::string_view name, bool case_sensitive) const;
 
         const module_base* module() const { return m_module; }
-        std::string name() const { return m_names.front(); }
+        const std::string& name() const { return m_names.front(); }
         std::span<const std::string> names() const { return m_names; }
-        std::vector<precondition> preconditions() const { return m_preconditions; }
-        std::string remarks() const { return m_remarks; }
-        std::string summary() const { return m_summary; }
+        const std::string& remarks() const { return m_remarks; }
+        const std::string& summary() const { return m_summary; }
+
+        std::vector<precondition>& preconditions() { return m_preconditions; }
+        std::span<const precondition> preconditions() const { return m_preconditions; }
 
         friend inline bool operator==(const command_info& lhs, const command_info& rhs)
         { return lhs.name() == rhs.name(); }
