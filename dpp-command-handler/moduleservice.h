@@ -38,24 +38,30 @@ namespace dpp
         std::vector<std::reference_wrapper<const module_base>> search_module(std::string_view name) const;
 
         template<module_derivative M>
-        void register_module(const std::any& extra_data = {})
+        void register_module()
         {
             m_modules.push_back(std::make_unique<M>());
-            if (extra_data.has_value())
-                m_extra_module_data.emplace(m_modules.back().get(), extra_data);
         }
 
         template<module_derivative M>
-        void register_module(std::any&& extra_data = {})
+        void register_module(const std::any& extra_data)
         {
-            m_modules.push_back(std::make_unique<M>());
-            if (extra_data.has_value())
-                m_extra_module_data.emplace(m_modules.back().get(), std::move(extra_data));
+            register_module<M>();
+            m_extra_module_data.emplace(m_modules.back().get(), extra_data);
+        }
+
+        template<module_derivative M>
+        void register_module(std::any&& extra_data)
+        {
+            register_module<M>();
+            m_extra_module_data.emplace(m_modules.back().get(), std::move(extra_data));
         }
 
         template<module_derivative... Modules>
         void register_modules()
-        { (m_modules.push_back(std::make_unique<Modules>()), ...); }
+        {
+            (register_module<Modules>(), ...);
+        }
     private:
         cluster* m_cluster;
         module_service_config m_config;
