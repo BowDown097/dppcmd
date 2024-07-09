@@ -8,13 +8,16 @@
 
 namespace dpp
 {
-#ifdef DPP_CORO
     template<typename>
     struct task_type : std::false_type {};
 
+#ifdef DPP_CORO
     template<typename T>
     struct task_type<task<T>> : std::true_type { using value_type = T; };
 #endif
+
+    template<typename T>
+    inline constexpr bool is_task_v = task_type<T>::value;
 
     struct variant_function_wrapper_base
     {
@@ -25,6 +28,7 @@ namespace dpp
     struct variant_function_wrapper : variant_function_wrapper_base
     {
         std::function<ReturnType(Args...)> func;
+        explicit variant_function_wrapper(std::function<ReturnType(Args...)> f) : func(std::move(f)) {}
     };
 
     class command_function
@@ -35,26 +39,23 @@ namespace dpp
         size_t target_arg_count() const { return m_target_arg_count; }
 
         template<typename T>
-        T operator()(auto&&... args)
+        T invoke(auto&&... args)
         {
             using WrapperType = variant_function_wrapper<T, std::remove_cvref_t<decltype(args)>...>;
-            WrapperType* fw = dynamic_cast<WrapperType*>(m_wrapper.get());
-            if (fw)
+            if (WrapperType* fw = dynamic_cast<WrapperType*>(m_wrapper.get()))
                 return fw->func(std::forward<decltype(args)>(args)...);
             return T{};
         }
 
-    #ifdef DPP_CORO
-        template<typename T> requires task_type<T>::value
-        T operator()(auto&&... args)
+        template<typename T> requires is_task_v<T>
+        T invoke(auto&&... args)
         {
             using ValueType = task_type<T>::value_type;
             using WrapperType = variant_function_wrapper<T, std::remove_cvref_t<decltype(args)>...>;
 
-            WrapperType* fw = dynamic_cast<WrapperType*>(m_wrapper.get());
-            if (fw)
+            if (WrapperType* fw = dynamic_cast<WrapperType*>(m_wrapper.get()))
             {
-                if constexpr (std::is_same_v<ValueType, void>)
+                if constexpr (std::same_as<ValueType, void>)
                     co_await fw->func(std::forward<decltype(args)>(args)...);
                 else
                     co_return co_await fw->func(std::forward<decltype(args)>(args)...);
@@ -62,16 +63,14 @@ namespace dpp
 
             co_return ValueType{};
         }
-    #endif
 
         template<typename ReturnType, typename... Args>
-        void set(std::function<ReturnType(Args...)> f, bool isCoroutine = false)
+        void set(std::function<ReturnType(Args...)> f)
         {
             using WrapperType = variant_function_wrapper<ReturnType, Args...>;
-            m_is_coroutine = isCoroutine;
+            m_is_coroutine = task_type<ReturnType>::value;
             m_target_arg_count = sizeof...(Args);
-            m_wrapper = std::make_unique<WrapperType>();
-            dynamic_cast<WrapperType*>(m_wrapper.get())->func = f;
+            m_wrapper = std::make_unique<WrapperType>(f);
         }
     private:
         bool m_is_coroutine{};

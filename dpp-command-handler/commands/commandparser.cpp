@@ -1,6 +1,5 @@
 #include "commandparser.h"
 
-// skidded from lenny because i got lazy lmao
 namespace dpp
 {
     namespace command_parser

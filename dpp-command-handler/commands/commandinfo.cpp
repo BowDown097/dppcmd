@@ -1,5 +1,5 @@
 #include "commandinfo.h"
-#include "utils/strings.h"
+#include "dpp-command-handler/utils/strings.h"
 
 namespace dpp
 {
