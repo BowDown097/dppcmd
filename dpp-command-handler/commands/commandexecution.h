@@ -9,6 +9,7 @@
 
 #define BUFFER_PARAMS std::vector<std::string>&& args, cluster* cluster, const message_create_t* context
 #define BUFFER_TYPES std::vector<std::string>, cluster*, const message_create_t*
+#define CONVERT_DROPPED convert_args<Dropped>(std::move(args), cmd, cluster, context)
 
 // co_return does not work with void unlike return, so this is necessary.
 // this is also a macro because a function that does this will produce the same issue.
@@ -113,55 +114,75 @@ namespace dpp
                 if constexpr (is_task_v<Result>)
                 {
                     return std::function<Result(BUFFER_TYPES)>([cmd, fn](BUFFER_PARAMS) -> Result {
-                        auto fnArgs = convert_args<Args>(std::move(args), cmd, cluster, context);
-                        constexpr size_t clusterIndex = utility::tuple_index_of_v<Args, dpp::cluster*>;
-                        constexpr size_t contextIndex = utility::tuple_index_of_v<Args, dpp::message_create_t*>;
+                        constexpr size_t clusterIndex = utility::tuple_index_of_v<dpp::cluster*, Args>;
+                        constexpr size_t contextIndex = utility::tuple_index_of_v<dpp::message_create_t*, Args>;
                         if constexpr (clusterIndex == 0)
                         {
-                            if constexpr (contextIndex == 0)
+                            if constexpr (contextIndex == 1)
                             {
-                                APPLY_TASK(Result, fn, std::tuple_cat(std::make_tuple(cluster, context), fnArgs));
+                                using Dropped = utility::tuple_drop_two_t<Args>;
+                                APPLY_TASK(Result, fn, std::tuple_cat(std::make_tuple(cluster, context), CONVERT_DROPPED));
                             }
                             else
                             {
-                                APPLY_TASK(Result, fn, std::tuple_cat(std::make_tuple(cluster, context), fnArgs));
+                                using Dropped = utility::tuple_drop_one_t<Args>;
+                                APPLY_TASK(Result, fn, std::tuple_cat(std::make_tuple(cluster), CONVERT_DROPPED));
                             }
                         }
                         else if constexpr (contextIndex == 0)
                         {
                             if constexpr (clusterIndex == 1)
                             {
-                                APPLY_TASK(Result, fn, std::tuple_cat(std::make_tuple(context, cluster), fnArgs));
+                                using Dropped = utility::tuple_drop_two_t<Args>;
+                                APPLY_TASK(Result, fn, std::tuple_cat(std::make_tuple(context, cluster), CONVERT_DROPPED));
                             }
                             else
                             {
-                                APPLY_TASK(Result, fn, std::tuple_cat(std::make_tuple(context), fnArgs));
+                                using Dropped = utility::tuple_drop_one_t<Args>;
+                                APPLY_TASK(Result, fn, std::tuple_cat(std::make_tuple(context), CONVERT_DROPPED));
                             }
                         }
-                        APPLY_TASK(Result, fn, fnArgs);
+                        else
+                        {
+                            APPLY_TASK(Result, fn, convert_args<Args>(std::move(args), cmd, cluster, context));
+                        }
                     });
                 }
                 else
                 {
                     return std::function<Result(BUFFER_TYPES)>([cmd, fn](BUFFER_PARAMS) -> Result {
-                        auto fnArgs = convert_args<Args>(std::move(args), cmd, cluster, context);
-                        constexpr size_t clusterIndex = utility::tuple_index_of_v<Args, dpp::cluster*>;
-                        constexpr size_t contextIndex = utility::tuple_index_of_v<Args, dpp::message_create_t*>;
+                        constexpr size_t clusterIndex = utility::tuple_index_of_v<dpp::cluster*, Args>;
+                        constexpr size_t contextIndex = utility::tuple_index_of_v<dpp::message_create_t*, Args>;
                         if constexpr (clusterIndex == 0)
                         {
                             if constexpr (contextIndex == 1)
-                                return std::apply(fn, std::tuple_cat(std::make_tuple(cluster, context), fnArgs));
+                            {
+                                using Dropped = utility::tuple_drop_two_t<Args>;
+                                return std::apply(fn, std::tuple_cat(std::make_tuple(cluster, context), CONVERT_DROPPED));
+                            }
                             else
-                                return std::apply(fn, std::tuple_cat(std::make_tuple(cluster, context), fnArgs));
+                            {
+                                using Dropped = utility::tuple_drop_one_t<Args>;
+                                return std::apply(fn, std::tuple_cat(std::make_tuple(cluster), CONVERT_DROPPED));
+                            }
                         }
                         else if constexpr (contextIndex == 0)
                         {
                             if constexpr (clusterIndex == 1)
-                                return std::apply(fn, std::tuple_cat(std::make_tuple(context, cluster), fnArgs));
+                            {
+                                using Dropped = utility::tuple_drop_two_t<Args>;
+                                return std::apply(fn, std::tuple_cat(std::make_tuple(context, cluster), CONVERT_DROPPED));
+                            }
                             else
-                                return std::apply(fn, std::tuple_cat(std::make_tuple(context), fnArgs));
+                            {
+                                using Dropped = utility::tuple_drop_one_t<Args>;
+                                return std::apply(fn, std::tuple_cat(std::make_tuple(context), CONVERT_DROPPED));
+                            }
                         }
-                        return std::apply(fn, fnArgs);
+                        else
+                        {
+                            return std::apply(fn, convert_args<Args>(std::move(args), cmd, cluster, context));
+                        }
                     });
                 }
             }
@@ -173,7 +194,9 @@ namespace dpp
             if constexpr (std::tuple_size_v<Tuple> > 0)
             {
                 return []<size_t... Is>(std::index_sequence<Is...>) {
-                    return (... + !utility::is_specialization_of_v<std::tuple_element_t<Is, Tuple>, std::optional>);
+                    return (... + (!utility::is_specialization_of_v<std::tuple_element_t<Is, Tuple>, std::optional> &&
+                                   !std::same_as<std::tuple_element_t<Is, Tuple>, dpp::cluster*> &&
+                                   !std::same_as<std::tuple_element_t<Is, Tuple>, dpp::message_create_t*>));
                 }(std::make_index_sequence<std::tuple_size_v<Tuple>>());
             }
             else
