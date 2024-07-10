@@ -14,6 +14,7 @@ namespace dpp
         bool case_sensitive_lookup{};
         char command_prefix = '!';
         char separator_char = ' ';
+        bool throw_exceptions{};
     };
 
     class base_command_service

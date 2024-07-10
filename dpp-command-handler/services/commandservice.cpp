@@ -1,6 +1,4 @@
 #include "commandservice.h"
-#include "dpp-command-handler/commands/exceptions.h"
-#include <format>
 
 namespace dpp
 {
@@ -16,33 +14,11 @@ namespace dpp
             if (!precond.success())
                 RETURN(command_result::from_error(precond.error().value(), precond.message()));
 
-            if (args.size() >= function->target_arg_count()) // >= to count optional arguments
-            {
-                try
-                {
-                    if (function->is_coroutine())
-                        RETURN(AWAIT(function->invoke<TASK(command_result)>(std::move(args), m_cluster, event)));
-                    else
-                        RETURN(function->invoke<command_result>(std::move(args), m_cluster, event));
-                }
-                catch (const bad_command_argument& e)
-                {
-                    RETURN(command_result::from_error(e.error(), e.what()));
-                }
-                catch (const std::exception& e)
-                {
-                    RETURN(command_result::from_error(e));
-                }
-            }
-            else
-            {
-                RETURN(command_result::from_error(command_error::bad_arg_count, std::format(
-                    "{}{}: Ran with {} arguments, expects at least {}",
-                    m_config.command_prefix, name, args.size(), function->target_arg_count()
-                )));
-            }
+            RETURN(AWAIT(function->invoke_with_result(
+                info.name(), args.size(), m_config.throw_exceptions, std::move(args))));
         }
-        RETURN(command_result::from_success());
+
+        RETURN(command_result::from_error(command_error::unknown_command, name));
     }
 
     std::vector<std::reference_wrapper<const command_info>> command_service::search_command(std::string_view name) const

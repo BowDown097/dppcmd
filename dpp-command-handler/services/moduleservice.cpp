@@ -1,7 +1,6 @@
 #include "moduleservice.h"
 #include "dpp-command-handler/modules/modulebase.h"
 #include "dpp-command-handler/utils/strings.h"
-#include <format>
 
 namespace dpp
 {
@@ -19,19 +18,15 @@ namespace dpp
                 if (!precond.success())
                     RETURN(command_result::from_error(precond.error().value(), precond.message()));
 
-                if (args.size() >= function->target_arg_count()) // >= to count optional arguments
+                if (auto it = m_extra_module_data.find(module.get()); it != m_extra_module_data.end())
                 {
-                    if (auto it = m_extra_module_data.find(module.get()); it != m_extra_module_data.end())
-                        RETURN(AWAIT(module->exec(function.get(), m_cluster, event, this, std::move(args), it->second)));
-                    else
-                        RETURN(AWAIT(module->exec(function.get(), m_cluster, event, this, std::move(args))));
+                    RETURN(AWAIT(module->exec(info.name(), function.get(), m_cluster, event, this,
+                                              std::move(args), m_config.throw_exceptions, it->second)));
                 }
                 else
                 {
-                    RETURN(command_result::from_error(command_error::bad_arg_count, std::format(
-                        "{}{}: Ran with {} arguments, expects at least {}",
-                        m_config.command_prefix, name, args.size(), function->target_arg_count()
-                    )));
+                    RETURN(AWAIT(module->exec(info.name(), function.get(), m_cluster, event, this,
+                                              std::move(args), m_config.throw_exceptions)));
                 }
             }
         }

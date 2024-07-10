@@ -1,10 +1,9 @@
 #pragma once
+#include "dpp-command-handler/results/commandresult.h"
+#include "dpp-command-handler/utils/ezcoro.h"
+#include "exceptions.h"
 #include <functional>
 #include <memory>
-
-#ifdef DPP_CORO
-# include <dpp/coro/task.h>
-#endif
 
 namespace dpp
 {
@@ -62,6 +61,44 @@ namespace dpp
             }
 
             co_return ValueType{};
+        }
+
+        TASK(command_result) invoke_with_result(std::string_view name, size_t arg_count, bool exceptions, auto&&... args)
+        {
+            if (arg_count < m_target_arg_count)
+            {
+                bad_argument_count arg_ex(name, arg_count, m_target_arg_count);
+                if (exceptions)
+                    throw arg_ex;
+                else
+                    RETURN(command_result::from_error(arg_ex.error(), arg_ex.what()));
+            }
+
+            if (exceptions)
+            {
+                if (is_coroutine())
+                    RETURN(AWAIT(invoke<TASK(command_result)>(std::forward<decltype(args)>(args)...)));
+                else
+                    RETURN(invoke<command_result>(std::forward<decltype(args)>(args)...));
+            }
+            else
+            {
+                try
+                {
+                    if (is_coroutine())
+                        RETURN(AWAIT(invoke<TASK(command_result)>(std::forward<decltype(args)>(args)...)));
+                    else
+                        RETURN(invoke<command_result>(std::forward<decltype(args)>(args)...));
+                }
+                catch (const bad_command_argument& e)
+                {
+                    RETURN(command_result::from_error(e.error(), e.what()));
+                }
+                catch (const std::exception& e)
+                {
+                    RETURN(command_result::from_error(e));
+                }
+            }
         }
 
         template<typename ReturnType, typename... Args>

@@ -4,7 +4,6 @@
 #include "dpp-command-handler/utils/join.h"
 #include "dpp-command-handler/utils/tuple_traits.h"
 #include "dpp-command-handler/utils/type_traits.h"
-#include "exceptions.h"
 #include "remainder.h"
 
 #define BUFFER_PARAMS std::vector<std::string>&& args, cluster* cluster, const message_create_t* context
@@ -31,34 +30,34 @@ namespace dpp
         T convert_arg(std::string_view arg, size_t index, std::string_view cmd,
                       cluster* cluster, const message_create_t* context)
         {
-            if constexpr (utility::is_type_reader<T>)
+            try
             {
-                T typeReader;
-                type_reader_result result = typeReader.read(cluster, context, arg);
-                if (!result.success())
-                    throw bad_command_argument(result.error().value(), arg, index + 1, cmd, result.message());
-                return typeReader;
-            }
-            else if constexpr (utility::is_specialization_of_v<T, remainder>)
-            {
-                return convert_arg<typename T::value_type>(arg, index, cmd, cluster, context);
-            }
-            else if constexpr (utility::is_specialization_of_v<T, std::optional>)
-            {
-                if (arg.empty())
-                    return std::nullopt;
-                return convert_arg<typename T::value_type>(arg, index, cmd, cluster, context);
-            }
-            else
-            {
-                try
+                if constexpr (utility::is_type_reader<T>)
+                {
+                    T typeReader;
+                    type_reader_result result = typeReader.read(cluster, context, arg);
+                    if (!result.success())
+                        throw bad_command_argument(result.error().value(), arg, index + 1, cmd, result.message());
+                    return typeReader;
+                }
+                else if constexpr (utility::is_specialization_of_v<T, remainder>)
+                {
+                    return convert_arg<typename T::value_type>(arg, index, cmd, cluster, context);
+                }
+                else if constexpr (utility::is_specialization_of_v<T, std::optional>)
+                {
+                    if (arg.empty())
+                        return std::nullopt;
+                    return convert_arg<typename T::value_type>(arg, index, cmd, cluster, context);
+                }
+                else
                 {
                     return utility::lexical_cast<T>(arg);
                 }
-                catch (const utility::bad_lexical_cast& e)
-                {
-                    throw bad_command_argument(command_error::parse_failed, arg, index + 1, cmd, e.what());
-                }
+            }
+            catch (const utility::bad_lexical_cast& e)
+            {
+                throw bad_command_argument(command_error::parse_failed, arg, index + 1, cmd, e.what());
             }
         }
 
@@ -88,7 +87,7 @@ namespace dpp
         }
 
         template<typename Result, typename Args, typename Module = void>
-        auto create_buffer_function(auto&& fn, std::string_view cmd)
+        auto create_buffer_function(auto&& fn, const std::string& cmd)
         {
             if constexpr (std::derived_from<std::remove_pointer_t<Module>, module_base>)
             {
