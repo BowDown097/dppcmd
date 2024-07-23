@@ -19,26 +19,41 @@ namespace dpp
             std::string message;
         };
 
+        struct memstreambuf : std::streambuf
+        {
+            memstreambuf(const char* base, size_t size)
+            {
+                char* p(const_cast<char*>(base));
+                this->setg(p, p, p + size);
+            }
+        };
+
+        template<typename T, typename = void>
+        struct can_from_chars : std::false_type {};
+
+        template<typename T>
+        struct can_from_chars<
+            T, std::void_t<decltype(std::from_chars(std::declval<const char*>(), std::declval<const char*>(),
+                                                    std::declval<std::add_lvalue_reference_t<T>>()))>>
+            : std::true_type {};
+
+        template<typename T>
+        inline constexpr bool can_from_chars_v = can_from_chars<T>::value;
+
+        template<typename T, typename = void>
+        struct can_to_chars : std::false_type {};
+
+        template<typename T>
+        struct can_to_chars<
+            T, std::void_t<decltype(std::to_chars(std::declval<char*>(), std::declval<char*>(),
+                                                  std::declval<std::remove_reference_t<T>>()))>>
+            : std::true_type {};
+
+        template<typename T>
+        inline constexpr bool can_to_chars_v = can_to_chars<T>::value;
+
         namespace casters
         {
-            template<typename T, typename = void>
-            struct can_from_chars : std::false_type {};
-
-            template<typename T>
-            struct can_from_chars<
-                T, std::void_t<decltype(std::from_chars(std::declval<const char*>(), std::declval<const char*>(),
-                                                        std::declval<std::add_lvalue_reference_t<T>>()))>>
-                : std::true_type {};
-
-            template<typename T, typename = void>
-            struct can_to_chars : std::false_type {};
-
-            template<typename T>
-            struct can_to_chars<
-                T, std::void_t<decltype(std::to_chars(std::declval<char*>(), std::declval<char*>(),
-                                                      std::declval<std::remove_reference_t<T>>()))>>
-                : std::true_type {};
-
             template<typename Target, typename Source>
             struct lexical_caster
             {
@@ -100,36 +115,30 @@ namespace dpp
             {
                 static std::string cast(Number n)
                 {
-                    if constexpr (!can_to_chars<Number>::value)
+                    if constexpr (!can_to_chars_v<Number>)
                         return std::to_string(n);
 
-                    std::string out(15, 0);
+                    // the "magic numbers" here are to leave room for other characters such as "+-e,."
+                    // floating point types need a larger size to account for the decimal part
+                    constexpr size_t bufsize = std::integral<Number>
+                        ? std::numeric_limits<Number>::digits10 + 2U
+                        : std::numeric_limits<Number>::digits10 + std::numeric_limits<Number>::max_digits10 + 10U;
 
-                    auto res = std::to_chars(&out.front(), &out.back(), n);
-                    while (res.ec != std::errc())
-                    {
-                        if (res.ec != std::errc::value_too_large)
-                            throw bad_lexical_cast(typeid(Number).name(), "std::string");
-                        out.resize(out.capacity() * 2);
-                        res = std::to_chars(&out.front(), &out.back(), n);
-                    }
-
-                    const auto length = res.ptr - out.data();
-                    if (length > static_cast<int64_t>(out.length()))
+                    char buf[bufsize];
+                    const auto res = std::to_chars(buf, buf + bufsize, n);
+                    if (res.ec != std::errc())
                         throw bad_lexical_cast(typeid(Number).name(), "std::string");
-
-                    out.resize(length);
-                    return out;
+                    return std::string(buf, res.ptr);
                 }
             };
 
             template<typename Target, typename StringViewLike>
-            requires std::is_convertible_v<StringViewLike, std::string_view>
+            requires std::convertible_to<const StringViewLike&, std::string_view>
             struct lexical_caster<Target, StringViewLike>
             {
-                static Target cast(StringViewLike s)
+                static Target cast(const StringViewLike& s)
                 {
-                    if constexpr (can_from_chars<Target>::value)
+                    if constexpr (can_from_chars_v<Target>)
                     {
                         Target n;
                         if (auto [_, ec] = std::from_chars(s.data(), s.data() + s.size(), n); ec != std::errc())
@@ -138,9 +147,10 @@ namespace dpp
                     }
                     else
                     {
-                        std::istringstream ss(s.data());
+                        memstreambuf sbuf(s.data(), s.size());
+                        std::istream in(&sbuf);
                         Target t;
-                        if ((ss >> t).fail() || !(ss >> std::ws).eof())
+                        if ((in >> t).fail() || !(in >> std::ws).eof())
                             throw bad_lexical_cast(typeid(StringViewLike).name(), typeid(Target).name());
                         return t;
                     }
@@ -161,7 +171,10 @@ namespace dpp
                 {
                     return casters::lexical_caster<Target, Source>::cast(s);
                 }
-                catch (const bad_lexical_cast& e) { return Target{}; }
+                catch (const bad_lexical_cast& e)
+                {
+                    return Target{};
+                }
             }
         }
     }
