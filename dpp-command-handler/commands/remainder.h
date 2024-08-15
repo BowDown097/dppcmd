@@ -4,10 +4,9 @@
 
 namespace dpp
 {
-    template<typename T>
+    template<typename T> requires std::is_object_v<T> && (!std::is_array_v<T>)
     class remainder
     {
-        static_assert(std::is_object_v<T> && !std::is_array_v<T>);
     public:
         using value_type = T;
 

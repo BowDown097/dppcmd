@@ -34,7 +34,25 @@ namespace dpp
         constexpr long tuple_index_of_v = tuple_index_of<T, Tuple>::value;
 
         template<std::size_t N, class Tuple>
-        struct tuple_drop_nth {};
+        struct tuple_drop_n;
+
+        template<class Tuple>
+        struct tuple_drop_n<0, Tuple>
+        {
+            using type = Tuple;
+        };
+
+        template<std::size_t N, typename T, typename... Ts> requires (N > 0)
+        struct tuple_drop_n<N, std::tuple<T, Ts...>>
+        {
+            using type = typename tuple_drop_n<N - 1, std::tuple<Ts...>>::type;
+        };
+
+        template<std::size_t N, class Tuple>
+        using tuple_drop_n_t = typename tuple_drop_n<N, Tuple>::type;
+
+        template<std::size_t N, class Tuple>
+        struct tuple_drop_nth;
 
         template<typename T, typename... Ts>
         struct tuple_drop_nth<0, std::tuple<T, Ts...>>
@@ -52,11 +70,5 @@ namespace dpp
 
         template<std::size_t N, class Tuple>
         using tuple_drop_nth_t = typename tuple_drop_nth<N, Tuple>::type;
-
-        template<class Tuple>
-        using tuple_drop_one_t = typename tuple_drop_nth<0, Tuple>::type;
-
-        template<class Tuple>
-        using tuple_drop_two_t = tuple_drop_one_t<tuple_drop_one_t<Tuple>>;
     }
 }

@@ -138,9 +138,8 @@ namespace dpp
             if constexpr (clusterIndex == -1 && contextIndex == -1)
                 return convert_args<Args>(std::move(args), cmd, cluster, context);
 
-            decltype(auto) converted = clusterIndex != -1 && contextIndex != -1
-                ? convert_args<utility::tuple_drop_two_t<Args>>(std::move(args), cmd, cluster, context)
-                : convert_args<utility::tuple_drop_one_t<Args>>(std::move(args), cmd, cluster, context);
+            constexpr size_t drop = (clusterIndex != -1 && contextIndex != -1) ? 2 : 1;
+            auto converted = convert_args<utility::tuple_drop_n_t<drop, Args>>(std::move(args), cmd, cluster, context);
 
             if constexpr (clusterIndex == 0 && contextIndex == 1)
                 return std::tuple_cat(std::make_tuple(cluster, context), converted);
