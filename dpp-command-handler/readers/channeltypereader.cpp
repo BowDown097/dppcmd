@@ -25,14 +25,16 @@ namespace dpp
     {
         if (uint64_t id = utility::lexical_cast<uint64_t>(input, false))
             if (channel* channel = find_guild_channel(guild_id, id))
-                add_result(channel, 0.9f);
+                if (id_set.insert(id).second)
+                    add_result(channel, 0.9f);
     }
 
     void channel_in::add_results_by_mention(const snowflake guild_id, std::string_view input)
     {
         if (snowflake id = utility::parse_channel_mention(input))
             if (channel* channel = find_guild_channel(guild_id, id))
-                add_result(channel);
+                if (id_set.insert(id).second)
+                    add_result(channel);
     }
 
     void channel_in::add_results_by_name(const snowflake guild_id, std::string_view input)
@@ -40,6 +42,7 @@ namespace dpp
         if (const guild* guild = find_guild(guild_id))
             for (snowflake channel_id : guild->channels)
                 if (channel* channel = find_channel(channel_id); utility::iequals(channel->name, input))
-                    return add_result(channel, channel->name == input ? 0.8f : 0.7f);
+                    if (id_set.insert(channel_id).second)
+                        return add_result(channel, channel->name == input ? 0.8f : 0.7f);
     }
 }

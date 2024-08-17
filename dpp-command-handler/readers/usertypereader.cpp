@@ -26,21 +26,24 @@ namespace dpp
         if (const guild* guild = find_guild(guild_id))
             for (const auto& [_, member] : guild->members)
                 if (user* user = member.get_user(); utility::iequals(user->global_name, input))
-                    add_result(user, user->global_name == input ? 0.8f : 0.7f);
+                    if (id_set.insert(user->id).second)
+                        add_result(user, user->global_name == input ? 0.8f : 0.7f);
     }
 
     void user_in::add_results_by_id(const snowflake guild_id, std::string_view input)
     {
         if (uint64_t id = utility::lexical_cast<uint64_t>(input, false))
             if (user* user = find_guild_user(guild_id, id))
-                add_result(user, 0.9f);
+                if (id_set.insert(id).second)
+                    add_result(user, 0.9f);
     }
 
     void user_in::add_results_by_mention(const snowflake guild_id, std::string_view input)
     {
         if (uint64_t id = utility::parse_user_mention(input))
             if (user* user = find_guild_user(guild_id, id))
-                add_result(user);
+                if (id_set.insert(id).second)
+                    add_result(user);
     }
 
     void user_in::add_results_by_nickname(const snowflake guild_id, std::string_view input)
@@ -49,7 +52,8 @@ namespace dpp
             for (const auto& [_, member] : guild->members)
                 if (std::string nickname = member.get_nickname(); utility::iequals(nickname, input))
                     if (user* user = member.get_user())
-                        add_result(user, nickname == input ? 0.8f : 0.7f);
+                        if (id_set.insert(user->id).second)
+                            add_result(user, nickname == input ? 0.8f : 0.7f);
     }
 
     void user_in::add_results_by_username(const snowflake guild_id, std::string_view input)
@@ -57,6 +61,7 @@ namespace dpp
         if (const guild* guild = find_guild(guild_id))
             for (const auto& [_, member] : guild->members)
                 if (user* user = member.get_user(); utility::iequals(user->username, input))
-                    add_result(user, user->username == input ? 0.8f : 0.7f);
+                    if (id_set.insert(user->id).second)
+                        add_result(user, user->username == input ? 0.8f : 0.7f);
     }
 }

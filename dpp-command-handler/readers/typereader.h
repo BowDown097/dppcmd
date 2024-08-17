@@ -8,15 +8,29 @@ namespace dpp
     class cluster;
     class message_create_t;
 
-    template<typename T>
+    template<typename T> requires std::is_object_v<T> && (!std::is_array_v<T>)
     class type_reader_value
     {
     public:
-        type_reader_value(const T& value, float weight) : m_value(value), m_weight(weight) {}
-        type_reader_value(T&& value, float weight) : m_value(std::move(value)), m_weight(weight) {}
+        using value_type = T;
 
-        T value() const { return m_value; }
-        float weight() const { return m_weight; }
+        template<typename U = T> requires std::is_constructible_v<T, U>
+        constexpr type_reader_value(U&& value, float weight) noexcept(std::is_nothrow_constructible_v<T, U>)
+            : m_value(std::forward<U>(value)), m_weight(weight) {}
+
+        constexpr const T* operator->() const noexcept { return std::addressof(m_value); }
+        constexpr T* operator->() noexcept { return std::addressof(m_value); }
+        constexpr const T& operator*() const& noexcept { return m_value; }
+        constexpr T& operator*() & noexcept { return m_value; }
+        constexpr const T&& operator*() const&& noexcept { return std::move(m_value); }
+        constexpr T&& operator*() && noexcept { return std::move(m_value); }
+
+        constexpr const T& value() const& noexcept { return m_value; }
+        constexpr T& value() & noexcept { return m_value; }
+        constexpr const T&& value() const&& noexcept { return std::move(m_value); }
+        constexpr T&& value() && noexcept { return std::move(m_value); }
+
+        constexpr float weight() const { return m_weight; }
     private:
         T m_value;
         float m_weight;
@@ -28,15 +42,17 @@ namespace dpp
     public:
         virtual type_reader_result read(cluster* cluster, const message_create_t* context, std::string_view input) = 0;
 
-        T top_result() const
+        decltype(auto) top_result() const
         {
-            const type_reader_value<T>* topValue{};
+            if (!has_result())
+                throw std::logic_error("Tried to get top result from type reader with no results");
 
+            const type_reader_value<T>* topValue{};
             for (const type_reader_value<T>& value : m_results)
                 if (!topValue || topValue->weight() < value.weight())
                     topValue = &value;
 
-            return topValue ? topValue->value() : T{};
+            return topValue->value();
         }
 
         bool has_result() const { return !m_results.empty(); }
@@ -44,8 +60,11 @@ namespace dpp
 
         std::span<const type_reader_value<T>> results() const { return m_results; }
     protected:
-        void add_result(const T& value, float weight = 1.0f) { m_results.emplace_back(value, weight); }
-        void add_result(T&& value, float weight = 1.0f) { m_results.emplace_back(std::move(value), weight); }
+        template<typename U = T> requires std::is_constructible_v<T, U>
+        void add_result(U&& value, float weight = 1.0f) noexcept(std::is_nothrow_constructible_v<T, U>)
+        {
+            m_results.emplace_back(std::forward<U>(value), weight);
+        }
     private:
         std::vector<type_reader_value<T>> m_results;
     };

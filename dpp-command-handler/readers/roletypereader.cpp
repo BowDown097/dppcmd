@@ -24,14 +24,16 @@ namespace dpp
     {
         if (uint64_t id = utility::lexical_cast<uint64_t>(input, false))
             if (role* role = find_guild_role(guild_id, id))
-                add_result(role);
+                if (id_set.insert(id).second)
+                    add_result(role);
     }
 
     void role_in::add_results_by_mention(const snowflake guild_id, std::string_view input)
     {
         if (uint64_t id = utility::parse_role_mention(input))
             if (role* role = find_guild_role(guild_id, id))
-                add_result(role);
+                if (id_set.insert(id).second)
+                    add_result(role);
     }
 
     void role_in::add_results_by_name(const snowflake guild_id, std::string_view input)
@@ -39,6 +41,7 @@ namespace dpp
         if (const guild* guild = find_guild(guild_id))
             for (snowflake role_id : guild->roles)
                 if (role* role = find_role(role_id); utility::iequals(role->name, input))
-                    return add_result(role, role->name == input ? 0.8f : 0.7f);
+                    if (id_set.insert(role_id).second)
+                        return add_result(role, role->name == input ? 0.8f : 0.7f);
     }
 }
