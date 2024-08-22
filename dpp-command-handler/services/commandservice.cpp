@@ -14,8 +14,8 @@ namespace dpp
             if (!precond.success())
                 RETURN(command_result::from_error(precond.error().value(), precond.message()));
 
-            RETURN(AWAIT(function->invoke_with_result(
-                info.name(), args.size(), m_config.throw_exceptions, std::move(args))));
+            RETURN(AWAIT(function->invoke_with_result(info.name(), args.size(), m_config.throw_exceptions,
+                std::move(args), event, static_cast<base_command_service*>(this))));
         }
 
         RETURN(command_result::from_error(command_error::unknown_command, name));

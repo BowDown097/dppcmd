@@ -40,6 +40,8 @@ namespace dpp
     class type_reader
     {
     public:
+        using value_type = T;
+
         virtual type_reader_result read(cluster* cluster, const message_create_t* context, std::string_view input) = 0;
 
         decltype(auto) top_result() const

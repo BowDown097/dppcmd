@@ -1,18 +1,16 @@
 #pragma once
 #include "commandfunction.h"
-#include "dpp-command-handler/readers/typereader.h"
+#include "dpp-command-handler/services/basecommandservice.h"
 #include "dpp-command-handler/utils/join.h"
 #include "dpp-command-handler/utils/tuple_traits.h"
 #include "dpp-command-handler/utils/type_traits.h"
 #include "remainder.h"
 
-#define BUFFER_PARAMS std::vector<std::string>&& args, cluster* cluster, const message_create_t* context
-#define BUFFER_TYPES std::vector<std::string>, cluster*, const message_create_t*
+#define BUFFER_PARAMS std::vector<std::string>&& args, const message_create_t* ctx, base_command_service* svc
+#define BUFFER_TYPES std::vector<std::string>, const message_create_t*, base_command_service*
 
 namespace dpp
 {
-    class cluster;
-    class message_create_t;
     class module_base;
 
     class command_execution
@@ -20,31 +18,42 @@ namespace dpp
     public:
         template<typename T>
         static T convert_arg(std::string_view arg, size_t index, std::string_view cmd,
-                             cluster* cluster, const message_create_t* context)
+                             const message_create_t* ctx, base_command_service* svc)
         {
             try
             {
                 if constexpr (utility::is_type_reader<T>)
                 {
-                    T typeReader;
-                    type_reader_result result = typeReader.read(cluster, context, arg);
-                    if (!result.success())
+                    T reader;
+                    if (type_reader_result result = reader.read(svc->cluster(), ctx, arg); !result.success())
                         throw bad_command_argument(result.error().value(), arg, index + 1, cmd, result.message());
-                    return typeReader;
+                    return reader;
                 }
                 else if constexpr (utility::is_specialization_of_v<T, remainder>)
                 {
-                    return convert_arg<typename T::value_type>(arg, index, cmd, cluster, context);
+                    return convert_arg<typename T::value_type>(arg, index, cmd, ctx, svc);
                 }
                 else if constexpr (utility::is_specialization_of_v<T, std::optional>)
                 {
                     if (arg.empty())
                         return std::nullopt;
-                    return convert_arg<typename T::value_type>(arg, index, cmd, cluster, context);
+                    return convert_arg<typename T::value_type>(arg, index, cmd, ctx, svc);
                 }
                 else
                 {
-                    return utility::lexical_cast<T>(arg);
+                    if (std::unique_ptr<dpp::type_reader<T>> reader = svc->create_type_reader<T>())
+                    {
+                        if (type_reader_result result = reader->read(svc->cluster(), ctx, arg); !result.success())
+                            throw bad_command_argument(result.error().value(), arg, index + 1, cmd, result.message());
+                        return reader->top_result();
+                    }
+
+                    // this fixes compile errors with types that have a type reader
+                    // that cannot be lexical_casted (streamed)
+                    if constexpr (requires(T t, std::istream& is) { is >> t; })
+                        return utility::lexical_cast<T>(arg);
+                    else
+                        throw utility::bad_lexical_cast("std::string_view", typeid(T).name());
                 }
             }
             catch (const utility::bad_lexical_cast& e)
@@ -54,27 +63,25 @@ namespace dpp
         }
 
         template<class Tuple, size_t I>
-        static auto convert_arg_at(std::span<const std::string> args, std::string_view cmd,
-                                   cluster* cluster, const message_create_t* context)
+        static auto convert_arg_at(std::string_view cmd, std::span<const std::string> args,
+                                   const message_create_t* ctx, base_command_service* svc)
         {
             using ArgType = std::tuple_element_t<I, Tuple>;
+            if (I >= args.size()) // still using convert_arg if index is OOB, may be an optional argument
+                return convert_arg<ArgType>("", I, cmd, ctx, svc);
+
             if constexpr (utility::is_specialization_of_v<ArgType, remainder>)
-            {
-                return convert_arg<ArgType>(I < args.size() ? utility::join(args.subspan(I), ' ') : "",
-                                            I, cmd, cluster, context);
-            }
+                return convert_arg<ArgType>(utility::join(args.subspan(I), ' '), I, cmd, ctx, svc);
             else
-            {
-                return convert_arg<ArgType>(I < args.size() ? args[I] : "", I, cmd, cluster, context);
-            }
+                return convert_arg<ArgType>(args[I], I, cmd, ctx, svc);
         }
 
         template<class Tuple>
-        static auto convert_args(std::vector<std::string>&& args, std::string_view cmd,
-                                 cluster* cluster, const message_create_t* context)
+        static auto convert_args(std::string_view cmd, std::vector<std::string>&& args,
+                                 const message_create_t* ctx, base_command_service* svc)
         {
-            return [args = std::move(args), cluster, context, cmd]<size_t... Is>(std::index_sequence<Is...>) {
-                return std::make_tuple(convert_arg_at<Tuple, Is>(args, cmd, cluster, context)...);
+            return [args = std::move(args), cmd, ctx, svc]<size_t... Is>(std::index_sequence<Is...>) {
+                return std::make_tuple(convert_arg_at<Tuple, Is>(cmd, args, ctx, svc)...);
             }(std::make_index_sequence<std::tuple_size_v<Tuple>>());
         }
 
@@ -84,16 +91,15 @@ namespace dpp
             if constexpr (std::derived_from<std::remove_pointer_t<Module>, module_base>)
             {
                 return std::function<Result(Module, BUFFER_TYPES)>([cmd, fn](Module m, BUFFER_PARAMS) -> Result {
-                    auto applyArgs = std::tuple_cat(std::make_tuple(m),
-                        convert_args<Args>(std::move(args), cmd, cluster, context));
-                    return apply_fn<Result>(fn, applyArgs);
+                    auto fn_args = get_apply_args<Args>(m, cmd, std::move(args), ctx, svc);
+                    return apply_fn<Result>(fn, fn_args);
                 });
             }
             else
             {
                 return std::function<Result(BUFFER_TYPES)>([cmd, fn](BUFFER_PARAMS) -> Result {
-                    auto applyArgs = get_local_apply_args<Args>(cmd, std::move(args), cluster, context);
-                    return apply_fn<Result>(fn, applyArgs);
+                    auto fn_args = get_apply_args<Args>(cmd, std::move(args), ctx, svc);
+                    return apply_fn<Result>(fn, fn_args);
                 });
             }
         }
@@ -130,25 +136,31 @@ namespace dpp
             return std::apply(std::forward<Fn>(f), std::forward<Tuple>(t));
         }
 
+        template<typename Args, typename Module>
+        static auto get_apply_args(Module m, const std::string& cmd, BUFFER_PARAMS)
+        {
+            return std::tuple_cat(std::make_tuple(m), convert_args<Args>(cmd, std::move(args), ctx, svc));
+        }
+
         template<typename Args>
-        static auto get_local_apply_args(const std::string& cmd, BUFFER_PARAMS)
+        static auto get_apply_args(const std::string& cmd, BUFFER_PARAMS)
         {
             constexpr long clusterIndex = utility::tuple_index_of_v<dpp::cluster*, Args>;
             constexpr long contextIndex = utility::tuple_index_of_v<dpp::message_create_t*, Args>;
             if constexpr (clusterIndex == -1 && contextIndex == -1)
-                return convert_args<Args>(std::move(args), cmd, cluster, context);
+                return convert_args<Args>(std::move(args), cmd, ctx, svc);
 
             constexpr size_t drop = (clusterIndex != -1 && contextIndex != -1) ? 2 : 1;
-            auto converted = convert_args<utility::tuple_drop_n_t<drop, Args>>(std::move(args), cmd, cluster, context);
+            auto converted = convert_args<utility::tuple_drop_n_t<drop, Args>>(std::move(args), cmd, ctx, svc);
 
             if constexpr (clusterIndex == 0 && contextIndex == 1)
-                return std::tuple_cat(std::make_tuple(cluster, context), converted);
+                return std::tuple_cat(std::make_tuple(svc->cluster(), ctx), converted);
             else if constexpr (clusterIndex == 0)
-                return std::tuple_cat(std::make_tuple(cluster), converted);
+                return std::tuple_cat(std::make_tuple(svc->cluster()), converted);
             else if constexpr (contextIndex == 0)
-                return std::tuple_cat(std::make_tuple(context, cluster), converted);
+                return std::tuple_cat(std::make_tuple(ctx, svc->cluster()), converted);
             else
-                return std::tuple_cat(std::make_tuple(context), converted);
+                return std::tuple_cat(std::make_tuple(ctx), converted);
         }
     };
 }

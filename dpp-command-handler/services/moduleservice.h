@@ -13,7 +13,7 @@ namespace dpp
     class module_service : public base_command_service
     {
     public:
-        explicit module_service(cluster* cluster, command_service_config config = {})
+        explicit module_service(dpp::cluster* cluster, command_service_config config = {})
             : base_command_service(cluster, config) {}
 
         std::span<const std::unique_ptr<module_base>> modules() const { return m_modules; }

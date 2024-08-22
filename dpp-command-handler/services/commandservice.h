@@ -9,7 +9,7 @@ namespace dpp
     class command_service : public base_command_service
     {
     public:
-        explicit command_service(cluster* cluster, command_service_config config = {})
+        explicit command_service(dpp::cluster* cluster, command_service_config config = {})
             : base_command_service(cluster, config) {}
 
         std::vector<std::reference_wrapper<const command_info>> search_command(std::string_view name) const override;

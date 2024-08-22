@@ -45,8 +45,8 @@ namespace dpp
         std::string m_name;
         std::string m_summary;
 
-        virtual TASK(command_result) exec(std::string_view command, command_function* function, dpp::cluster* cluster,
-            const message_create_t* context, const module_service* service, std::vector<std::string>&& args,
+        virtual TASK(command_result) exec(std::string_view command, command_function* function,
+            const message_create_t* context, module_service* service, std::vector<std::string>&& args,
             bool exceptions, const std::any& extra_data = {}) = 0;
     };
 }

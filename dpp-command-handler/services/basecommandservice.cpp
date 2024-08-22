@@ -1,11 +1,24 @@
 #include "basecommandservice.h"
 #include "dpp-command-handler/commands/commandinfo.h"
 #include "dpp-command-handler/commands/commandparser.h"
+#include "dpp-command-handler/readers/channeltypereader.h"
+#include "dpp-command-handler/readers/guildmembertypereader.h"
+#include "dpp-command-handler/readers/roletypereader.h"
+#include "dpp-command-handler/readers/usertypereader.h"
 #include "dpp-command-handler/utils/join.h"
 #include <dpp/dispatcher.h>
 
 namespace dpp
 {
+    base_command_service::base_command_service(dpp::cluster* cluster, command_service_config config)
+        : m_cluster(cluster), m_config(config)
+    {
+        register_type_reader<channel_in>();
+        register_type_reader<guild_member_in>();
+        register_type_reader<role_in>();
+        register_type_reader<user_in>();
+    }
+
     TASK(precondition_result) base_command_service::gen_precondition_result(command_info& command,
                                                                             const message_create_t* event)
     {

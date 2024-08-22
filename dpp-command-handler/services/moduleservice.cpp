@@ -20,13 +20,13 @@ namespace dpp
 
                 if (auto it = m_extra_module_data.find(module.get()); it != m_extra_module_data.end())
                 {
-                    RETURN(AWAIT(module->exec(info.name(), function.get(), m_cluster, event, this,
-                                              std::move(args), m_config.throw_exceptions, it->second)));
+                    RETURN(AWAIT(module->exec(info.name(), function.get(), event,
+                        this, std::move(args), m_config.throw_exceptions, it->second)));
                 }
                 else
                 {
-                    RETURN(AWAIT(module->exec(info.name(), function.get(), m_cluster, event, this,
-                                              std::move(args), m_config.throw_exceptions)));
+                    RETURN(AWAIT(module->exec(info.name(), function.get(), event,
+                        this, std::move(args), m_config.throw_exceptions)));
                 }
             }
         }

@@ -10,18 +10,20 @@ namespace dpp
     public:
         explicit module(std::string_view name, std::string_view summary = "") : module_base(name, summary) {}
 
-        TASK(command_result) exec(std::string_view command, command_function* function, dpp::cluster* cluster,
-            const message_create_t* context, const module_service* service, std::vector<std::string>&& args,
+        TASK(command_result) exec(std::string_view command, command_function* function,
+            const message_create_t* context, module_service* service, std::vector<std::string>&& args,
             bool exceptions, const std::any& extra_data = {}) override
         {
+            base_command_service* base_service = reinterpret_cast<base_command_service*>(service);
+
             auto d = std::make_unique<Derived>();
-            d->cluster = cluster;
+            d->cluster = base_service->cluster();
             d->context = context;
             d->m_extra_data = extra_data;
             d->service = service;
 
             RETURN(AWAIT(function->invoke_with_result(command, args.size(), exceptions,
-                                                      d.get(), std::move(args), cluster, context)));
+                d.get(), std::move(args), context, base_service)));
         }
     protected:
         template<typename T>
