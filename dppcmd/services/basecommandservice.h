@@ -27,6 +27,7 @@ namespace dppcmd
         TASK(command_result) handle_message(const dpp::message_create_t* event);
 
         dpp::cluster* cluster() const { return m_cluster; }
+        command_service_config config() const { return m_config; }
 
         template<typename T>
         std::unique_ptr<type_reader<T>> create_type_reader() const
