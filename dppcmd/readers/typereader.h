@@ -41,8 +41,8 @@ namespace dppcmd
     public:
         using value_type = T;
 
-		virtual type_reader_result read(dpp::cluster* cluster, const dpp::message_create_t* context,
-										std::string_view input) = 0;
+        virtual type_reader_result read(dpp::cluster* cluster, const dpp::message_create_t* context,
+                                        std::string_view input) = 0;
 
         decltype(auto) top_result() const
         {
