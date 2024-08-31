@@ -18,8 +18,8 @@ namespace dppcmd
 
         std::span<const std::unique_ptr<module_base>> modules() const { return m_modules; }
 
-        std::vector<std::reference_wrapper<const command_info>> search_command(std::string_view name) const override;
-        std::vector<std::reference_wrapper<const module_base>> search_module(std::string_view name) const;
+        std::vector<const command_info*> search_command(std::string_view name) const override;
+        std::vector<const module_base*> search_module(std::string_view name) const;
 
         template<module_derivative M>
         void register_module()

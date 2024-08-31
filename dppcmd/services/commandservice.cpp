@@ -21,13 +21,13 @@ namespace dppcmd
         RETURN(command_result::from_error(command_error::unknown_command, name));
     }
 
-    std::vector<std::reference_wrapper<const command_info>> command_service::search_command(std::string_view name) const
+    std::vector<const command_info*> command_service::search_command(std::string_view name) const
     {
-        std::vector<std::reference_wrapper<const command_info>> out;
+        std::vector<const command_info*> out;
 
         for (const auto& [info, _] : m_commands)
             if (info.matches(name, m_config.case_sensitive_lookup))
-                out.push_back(info);
+                out.push_back(&info);
 
         return out;
     }

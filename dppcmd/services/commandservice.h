@@ -12,7 +12,7 @@ namespace dppcmd
         explicit command_service(dpp::cluster* cluster, command_service_config config = {})
             : base_command_service(cluster, config) {}
 
-        std::vector<std::reference_wrapper<const command_info>> search_command(std::string_view name) const override;
+        std::vector<const command_info*> search_command(std::string_view name) const override;
 
         template<typename F>
         void register_command(F&& fn, auto&&... command_info_args)

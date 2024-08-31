@@ -34,25 +34,25 @@ namespace dppcmd
         RETURN(command_result::from_error(command_error::unknown_command, name));
     }
 
-    std::vector<std::reference_wrapper<const command_info>> module_service::search_command(std::string_view name) const
+    std::vector<const command_info*> module_service::search_command(std::string_view name) const
     {
-        std::vector<std::reference_wrapper<const command_info>> out;
+        std::vector<const command_info*> out;
 
         for (const std::unique_ptr<module_base>& module : m_modules)
             for (const auto& [info, _] : module->m_commands)
                 if (info.matches(name, m_config.case_sensitive_lookup))
-                    out.push_back(info);
+                    out.push_back(&info);
 
         return out;
     }
 
-    std::vector<std::reference_wrapper<const module_base>> module_service::search_module(std::string_view name) const
+    std::vector<const module_base*> module_service::search_module(std::string_view name) const
     {
-        std::vector<std::reference_wrapper<const module_base>> out;
+        std::vector<const module_base*> out;
 
         for (const std::unique_ptr<module_base>& module : m_modules)
             if (utility::sequals(module->name(), name, m_config.case_sensitive_lookup))
-                out.push_back(*module);
+                out.push_back(module.get());
 
         return out;
     }

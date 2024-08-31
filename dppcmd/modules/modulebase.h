@@ -15,7 +15,7 @@ namespace dppcmd
         explicit module_base(std::string_view name, std::string_view summary = "") : m_name(name), m_summary(summary) {}
         virtual ~module_base() = default;
 
-        std::vector<std::reference_wrapper<const command_info>> commands() const;
+        std::vector<const command_info*> commands() const;
         const std::string& name() const { return m_name; }
         const std::string& summary() const { return m_summary; }
 

@@ -45,7 +45,7 @@ namespace dppcmd
             m_type_reader_factories[typeid(typename T::value_type)] = []() -> void* { return new T; };
         }
 
-        virtual std::vector<std::reference_wrapper<const command_info>> search_command(std::string_view name) const = 0;
+        virtual std::vector<const command_info*> search_command(std::string_view name) const = 0;
     protected:
         dpp::cluster* m_cluster;
         command_service_config m_config;
