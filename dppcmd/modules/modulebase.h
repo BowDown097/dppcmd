@@ -26,9 +26,10 @@ namespace dppcmd
         const module_service* service{};
 
         template<typename MemberFunction> requires std::is_member_function_pointer_v<MemberFunction>
-        void register_command(MemberFunction fn, auto&&... command_info_args)
+        void register_command(MemberFunction fn, command_info info)
         {
-            command_info info(this, std::forward<decltype(command_info_args)>(command_info_args)...);
+            info.module = this;
+
             using FTF = utility::function_traits<MemberFunction>;
             using Result = FTF::result_type;
             using Args = FTF::args;
@@ -38,6 +39,21 @@ namespace dppcmd
             cmd_fn->set(command_execution::create_buffer_function<Result, Args, Module>(std::mem_fn(fn), info.name()));
             cmd_fn->set_target_arg_count(command_execution::target_arg_count<Args>());
             m_commands.emplace_back(info, std::move(cmd_fn));
+        }
+
+        template<typename MemberFunction> requires std::is_member_function_pointer_v<MemberFunction>
+        void register_command(MemberFunction fn, std::in_place_t, const std::string& name, auto&&... command_info_args)
+        {
+            command_info info(this, { name }, std::forward<decltype(command_info_args)>(command_info_args)...);
+            register_command(std::move(fn), std::move(info));
+        }
+
+        template<typename MemberFunction> requires std::is_member_function_pointer_v<MemberFunction>
+        void register_command(MemberFunction fn, std::in_place_t,
+                              std::initializer_list<std::string> names, auto&&... command_info_args)
+        {
+            command_info info(this, names, std::forward<decltype(command_info_args)>(command_info_args)...);
+            register_command(std::move(fn), std::move(info));
         }
     private:
         std::vector<std::pair<command_info, std::unique_ptr<command_function>>> m_commands;

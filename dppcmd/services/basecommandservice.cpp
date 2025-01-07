@@ -22,13 +22,13 @@ namespace dppcmd
     TASK(precondition_result) base_command_service::gen_precondition_result(command_info& command,
                                                                             const dpp::message_create_t* event)
     {
-        if (command.preconditions().empty())
+        if (command.preconditions.empty())
             RETURN(precondition_result::from_success());
 
         std::optional<command_error> finalError;
         std::vector<std::string> messages;
 
-        for (precondition& precond : command.preconditions())
+        for (precondition& precond : command.preconditions)
         {
             precondition_result result = AWAIT(precond.check(m_cluster, event, this));
             if (result.success())
