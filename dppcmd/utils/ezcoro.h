@@ -2,6 +2,7 @@
 
 // this just helps make optional coroutine code more compact
 #ifdef DPP_CORO
+# include <condition_variable>
 # include <dpp/coro/task.h>
 # define AWAIT(task) co_await task
 # define RETURN(res) co_return res
