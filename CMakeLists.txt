@@ -5,12 +5,17 @@ set_target_properties(dppcmd
         CXX_STANDARD 20
         CXX_STANDARD_REQUIRED ON)
 
+option(BUILD_EXAMPLE_BOT "Build the example bot." OFF)
 option(USE_COROUTINES "Use DPP coroutine support." OFF)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 if(USE_COROUTINES)
     target_compile_definitions(dppcmd PUBLIC DPP_CORO)
+endif()
+
+if(BUILD_EXAMPLE_BOT)
+    add_subdirectory(example-bot)
 endif()
 
 target_sources(dppcmd
