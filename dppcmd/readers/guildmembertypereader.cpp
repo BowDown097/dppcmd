@@ -9,7 +9,7 @@
 namespace dppcmd
 {
     type_reader_result guild_member_in::read(dpp::cluster* cluster, const dpp::message_create_t* context,
-                                             std::string_view input)
+                                             const std::string& input)
     {
         add_results_by_mention(context->msg.guild_id, input); // weight: 1.0
         add_results_by_id(context->msg.guild_id, input); // weight: 0.9
@@ -22,7 +22,7 @@ namespace dppcmd
         return type_reader_result::from_error(command_error::object_not_found, "User not found.");
     }
 
-    void guild_member_in::add_results_by_global_name(const dpp::snowflake guild_id, std::string_view input)
+    void guild_member_in::add_results_by_global_name(const dpp::snowflake guild_id, const std::string& input)
     {
         if (const dpp::guild* guild = find_guild(guild_id))
             for (const auto& [_, member] : guild->members)
@@ -31,7 +31,7 @@ namespace dppcmd
                         add_result(member, user->global_name == input ? 0.8f : 0.7f);
     }
 
-    void guild_member_in::add_results_by_id(const dpp::snowflake guild_id, std::string_view input)
+    void guild_member_in::add_results_by_id(const dpp::snowflake guild_id, const std::string& input)
     {
         if (uint64_t id = utility::lexical_cast<uint64_t>(input, false))
             if (auto gm = find_guild_member_opt(guild_id, id))
@@ -39,7 +39,7 @@ namespace dppcmd
                     add_result(gm.value());
     }
 
-    void guild_member_in::add_results_by_mention(const dpp::snowflake guild_id, std::string_view input)
+    void guild_member_in::add_results_by_mention(const dpp::snowflake guild_id, const std::string& input)
     {
         if (uint64_t id = utility::parse_user_mention(input))
             if (auto gm = find_guild_member_opt(guild_id, id))
@@ -47,7 +47,7 @@ namespace dppcmd
                     add_result(gm.value());
     }
 
-    void guild_member_in::add_results_by_nickname(const dpp::snowflake guild_id, std::string_view input)
+    void guild_member_in::add_results_by_nickname(const dpp::snowflake guild_id, const std::string& input)
     {
         if (const dpp::guild* guild = find_guild(guild_id))
             for (const auto& [_, member] : guild->members)
@@ -56,7 +56,7 @@ namespace dppcmd
                         add_result(member, nickname == input ? 0.8f : 0.7f);
     }
 
-    void guild_member_in::add_results_by_username(const dpp::snowflake guild_id, std::string_view input)
+    void guild_member_in::add_results_by_username(const dpp::snowflake guild_id, const std::string& input)
     {
         if (const dpp::guild* guild = find_guild(guild_id))
             for (const auto& [_, member] : guild->members)

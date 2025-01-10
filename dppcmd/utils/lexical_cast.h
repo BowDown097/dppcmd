@@ -140,7 +140,7 @@ namespace dppcmd
                     {
                         Number n;
                         if (auto [_, ec] = std::from_chars(s.data(), s.data() + s.size(), n); ec != std::errc())
-                            throw bad_lexical_cast(typeid(StringViewLike).name(), typeid(Number).name());
+                            throw bad_lexical_cast("string", typeid(Number).name());
                         return n;
                     }
                     else
@@ -149,7 +149,7 @@ namespace dppcmd
                         std::istream in(&sbuf);
                         Number n;
                         if ((in >> n).fail() || !(in >> std::ws).eof())
-                            throw bad_lexical_cast(typeid(StringViewLike).name(), typeid(Number).name());
+                            throw bad_lexical_cast("string", typeid(Number).name());
                         return n;
                     }
                 }
@@ -171,7 +171,7 @@ namespace dppcmd
                         char buf[bufsize];
                         const auto res = std::to_chars(buf, buf + bufsize, n);
                         if (res.ec != std::errc())
-                            throw bad_lexical_cast(typeid(Number).name(), "std::string");
+                            throw bad_lexical_cast(typeid(Number).name(), "string");
 
                         return std::string(buf, res.ptr);
                     }

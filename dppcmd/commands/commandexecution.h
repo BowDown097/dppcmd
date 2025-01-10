@@ -18,7 +18,7 @@ namespace dppcmd
     {
     public:
         template<typename T>
-        static T convert_arg(std::string_view arg, size_t index, std::string_view cmd,
+        static T convert_arg(const std::string& arg, size_t index, const std::string& cmd,
                              const dpp::message_create_t* ctx, base_command_service* svc)
         {
             try
@@ -64,7 +64,7 @@ namespace dppcmd
         }
 
         template<class Tuple, size_t I>
-        static auto convert_arg_at(std::string_view cmd, std::span<const std::string> args,
+        static auto convert_arg_at(const std::string& cmd, std::span<const std::string> args,
                                    const dpp::message_create_t* ctx, base_command_service* svc)
         {
             using ArgType = std::tuple_element_t<I, Tuple>;
@@ -78,10 +78,10 @@ namespace dppcmd
         }
 
         template<class Tuple>
-        static auto convert_args(std::string_view cmd, std::vector<std::string>&& args,
+        static auto convert_args(const std::string& cmd, std::vector<std::string>&& args,
                                  const dpp::message_create_t* ctx, base_command_service* svc)
         {
-            return [args = std::move(args), cmd, ctx, svc]<size_t... Is>(std::index_sequence<Is...>) {
+            return [args = std::move(args), &cmd, ctx, svc]<size_t... Is>(std::index_sequence<Is...>) {
                 return std::make_tuple(convert_arg_at<Tuple, Is>(cmd, args, ctx, svc)...);
             }(std::make_index_sequence<std::tuple_size_v<Tuple>>());
         }
@@ -91,14 +91,14 @@ namespace dppcmd
         {
             if constexpr (std::derived_from<std::remove_pointer_t<Module>, module_base>)
             {
-                return std::function<Result(Module, BUFFER_TYPES)>([cmd, fn](Module m, BUFFER_PARAMS) -> Result {
+                return std::function<Result(Module, BUFFER_TYPES)>([&cmd, fn](Module m, BUFFER_PARAMS) -> Result {
                     auto fn_args = get_apply_args<Args>(m, cmd, std::move(args), ctx, svc);
                     return apply_fn<Result>(fn, fn_args);
                 });
             }
             else
             {
-                return std::function<Result(BUFFER_TYPES)>([cmd, fn](BUFFER_PARAMS) -> Result {
+                return std::function<Result(BUFFER_TYPES)>([&cmd, fn](BUFFER_PARAMS) -> Result {
                     auto fn_args = get_apply_args<Args>(cmd, std::move(args), ctx, svc);
                     return apply_fn<Result>(fn, fn_args);
                 });

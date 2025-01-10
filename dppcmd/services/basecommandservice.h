@@ -41,7 +41,7 @@ namespace dppcmd
         template<typename T> requires utility::is_type_reader<T>
         void register_type_reader()
         {
-            // this allocation is safe because get_type_reader() ensures proper management
+            // this allocation is safe because create_type_reader() ensures proper management
             m_type_reader_factories[typeid(typename T::value_type)] = []() -> void* { return new T; };
         }
 

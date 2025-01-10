@@ -10,7 +10,7 @@
 
 namespace dppcmd
 {
-    type_reader_result channel_in::read(dpp::cluster* cluster, const dpp::message_create_t* context, std::string_view input)
+    type_reader_result channel_in::read(dpp::cluster* cluster, const dpp::message_create_t* context, const std::string& input)
     {
         add_results_by_mention(context->msg.guild_id, input); // weight: 1.0
         add_results_by_id(context->msg.guild_id, input); // weight: 0.9
@@ -21,7 +21,7 @@ namespace dppcmd
         return type_reader_result::from_error(command_error::object_not_found, "Channel not found.");
     }
 
-    void channel_in::add_results_by_id(const dpp::snowflake guild_id, std::string_view input)
+    void channel_in::add_results_by_id(const dpp::snowflake guild_id, const std::string& input)
     {
         if (uint64_t id = utility::lexical_cast<uint64_t>(input, false))
             if (dpp::channel* channel = find_guild_channel(guild_id, id))
@@ -29,7 +29,7 @@ namespace dppcmd
                     add_result(channel, 0.9f);
     }
 
-    void channel_in::add_results_by_mention(const dpp::snowflake guild_id, std::string_view input)
+    void channel_in::add_results_by_mention(const dpp::snowflake guild_id, const std::string& input)
     {
         if (dpp::snowflake id = utility::parse_channel_mention(input))
             if (dpp::channel* channel = find_guild_channel(guild_id, id))
@@ -37,7 +37,7 @@ namespace dppcmd
                     add_result(channel);
     }
 
-    void channel_in::add_results_by_name(const dpp::snowflake guild_id, std::string_view input)
+    void channel_in::add_results_by_name(const dpp::snowflake guild_id, const std::string& input)
     {
         if (const dpp::guild* guild = find_guild(guild_id))
             for (dpp::snowflake channel_id : guild->channels)
