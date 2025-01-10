@@ -11,6 +11,7 @@
 
 namespace dppcmd
 {
+    class command_service;
     class module_base;
 
     class command_execution
@@ -110,9 +111,13 @@ namespace dppcmd
             if constexpr (std::tuple_size_v<Tuple> > 0)
             {
                 return []<size_t... Is>(std::index_sequence<Is...>) {
-                    return (... + (!utility::is_specialization_of_v<std::tuple_element_t<Is, Tuple>, std::optional> &&
-                                   !std::same_as<std::tuple_element_t<Is, Tuple>, dpp::cluster*> &&
-                                   !std::same_as<std::tuple_element_t<Is, Tuple>, dpp::message_create_t*>));
+                    return (... + []{
+                        using ArgType = std::tuple_element_t<Is, Tuple>;
+                        return !utility::is_specialization_of_v<ArgType, std::optional> &&
+                               !std::same_as<ArgType, dpp::cluster*> &&
+                               !std::same_as<ArgType, const dpp::message_create_t*> &&
+                               !std::same_as<ArgType, const command_service*>;
+                    }());
                 }(std::make_index_sequence<std::tuple_size_v<Tuple>>());
             }
             else
@@ -121,6 +126,10 @@ namespace dppcmd
             }
         }
     private:
+        // this exists because dynamic_cast requires a complete type definition,
+        // which would cause a recursive include, as commandservice.h includes this file.
+        static command_service* create_command_service(base_command_service* svc);
+
         template<typename Result, typename Fn, typename Tuple> requires utility::is_task_v<Result>
         static Result apply_fn(Fn&& f, Tuple&& t)
         {
@@ -146,21 +155,44 @@ namespace dppcmd
         static auto get_apply_args(const std::string& cmd, BUFFER_PARAMS)
         {
             constexpr long clusterIndex = utility::tuple_index_of_v<dpp::cluster*, Args>;
-            constexpr long contextIndex = utility::tuple_index_of_v<dpp::message_create_t*, Args>;
-            if constexpr (clusterIndex == -1 && contextIndex == -1)
-                return convert_args<Args>(std::move(args), cmd, ctx, svc);
+            constexpr long contextIndex = utility::tuple_index_of_v<const dpp::message_create_t*, Args>;
+            constexpr long serviceIndex = utility::tuple_index_of_v<const command_service*, Args>;
 
-            constexpr size_t drop = (clusterIndex != -1 && contextIndex != -1) ? 2 : 1;
-            auto converted = convert_args<utility::tuple_drop_n_t<drop, Args>>(std::move(args), cmd, ctx, svc);
+            constexpr size_t drop = (clusterIndex != -1) + (contextIndex != -1) + (serviceIndex != -1);
+            if constexpr (drop == 3)
+                return convert_args<Args>(cmd, std::move(args), ctx, svc);
 
-            if constexpr (clusterIndex == 0 && contextIndex == 1)
-                return std::tuple_cat(std::make_tuple(svc->cluster(), ctx), converted);
-            else if constexpr (clusterIndex == 0)
-                return std::tuple_cat(std::make_tuple(svc->cluster()), converted);
-            else if constexpr (contextIndex == 0)
-                return std::tuple_cat(std::make_tuple(ctx, svc->cluster()), converted);
-            else
-                return std::tuple_cat(std::make_tuple(ctx), converted);
+            auto converted = convert_args<utility::tuple_drop_n_t<drop, Args>>(cmd, std::move(args), ctx, svc);
+            if constexpr (clusterIndex == 0 && contextIndex == 1 && serviceIndex == 2)
+                return std::tuple_cat(std::make_tuple(svc->cluster(), ctx, create_command_service(svc)), std::move(converted));
+            else if constexpr (clusterIndex == 0 && contextIndex == 2 && serviceIndex == 1)
+                return std::tuple_cat(std::make_tuple(svc->cluster(), create_command_service(svc), ctx), std::move(converted));
+            else if constexpr (clusterIndex == 0 && contextIndex == 1 && serviceIndex == -1)
+                return std::tuple_cat(std::make_tuple(svc->cluster(), ctx), std::move(converted));
+            else if constexpr (clusterIndex == 0 && contextIndex == -1 && serviceIndex == 1)
+                return std::tuple_cat(std::make_tuple(svc->cluster(), create_command_service(svc)), std::move(converted));
+            else if constexpr (clusterIndex == 1 && contextIndex == 0 && serviceIndex == 2)
+                return std::tuple_cat(std::make_tuple(ctx, svc->cluster(), create_command_service(svc)), std::move(converted));
+            else if constexpr (clusterIndex == 1 && contextIndex == 2 && serviceIndex == 0)
+                return std::tuple_cat(std::make_tuple(create_command_service(svc), svc->cluster(), ctx), std::move(converted));
+            else if constexpr (clusterIndex == 1 && contextIndex == 0 && serviceIndex == -1)
+                return std::tuple_cat(std::make_tuple(ctx, svc->cluster()), std::move(converted));
+            else if constexpr (clusterIndex == 1 && contextIndex == -1 && serviceIndex == 0)
+                return std::tuple_cat(std::make_tuple(create_command_service(svc), svc->cluster()), std::move(converted));
+            else if constexpr (clusterIndex == 2 && contextIndex == 0 && serviceIndex == 1)
+                return std::tuple_cat(std::make_tuple(ctx, create_command_service(svc), svc->cluster()), std::move(converted));
+            else if constexpr (clusterIndex == 2 && contextIndex == 1 && serviceIndex == 0)
+                return std::tuple_cat(std::make_tuple(create_command_service(svc), ctx, svc->cluster()), std::move(converted));
+            else if constexpr (clusterIndex == -1 && contextIndex == 0 && serviceIndex == 1)
+                return std::tuple_cat(std::make_tuple(ctx, create_command_service(svc)), std::move(converted));
+            else if constexpr (clusterIndex == -1 && contextIndex == 1 && serviceIndex == 0)
+                return std::tuple_cat(std::make_tuple(create_command_service(svc), ctx), std::move(converted));
+            else if constexpr (clusterIndex == 0 && contextIndex == -1 && serviceIndex == -1)
+                return std::tuple_cat(std::make_tuple(svc->cluster()), std::move(converted));
+            else if constexpr (clusterIndex == -1 && contextIndex == 0 && serviceIndex == -1)
+                return std::tuple_cat(std::make_tuple(ctx), std::move(converted));
+            else if constexpr (clusterIndex == -1 && contextIndex == -1 && serviceIndex == 0)
+                return std::tuple_cat(std::make_tuple(create_command_service(svc)), std::move(converted));
         }
     };
 }

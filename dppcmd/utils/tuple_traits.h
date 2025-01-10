@@ -26,7 +26,7 @@ namespace dppcmd
 
         template<class T, class... Args>
         struct tuple_index_of<T, std::tuple<Args...>> {
-            using Tuple = std::tuple<std::remove_cv_t<Args>...>;
+            using Tuple = std::tuple<Args...>;
             static constexpr long value = tuple_index_of_impl<T, Tuple, std::index_sequence_for<Args...>>::value;
         };
 
