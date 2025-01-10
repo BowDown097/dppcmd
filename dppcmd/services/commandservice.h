@@ -12,6 +12,7 @@ namespace dppcmd
         explicit command_service(dpp::cluster* cluster, command_service_config config = {})
             : base_command_service(cluster, config) {}
 
+        std::vector<const command_info*> commands() const;
         std::vector<const command_info*> search_command(std::string_view name) const override;
 
         template<typename Function> requires std::is_function_v<std::remove_pointer_t<Function>>

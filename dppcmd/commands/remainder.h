@@ -18,6 +18,11 @@ namespace dppcmd
         explicit constexpr remainder(U&& value) noexcept(std::is_nothrow_constructible_v<T, U>)
             : m_value(std::forward<U>(value)) {}
 
+        constexpr const T& value() const& noexcept { return m_value; }
+        constexpr T& value() & noexcept { return m_value; }
+        constexpr const T&& value() const&& noexcept { return std::move(m_value); }
+        constexpr T&& value() && noexcept { return std::move(m_value); }
+
         constexpr const T* operator->() const noexcept { return std::addressof(m_value); }
         constexpr T* operator->() noexcept { return std::addressof(m_value); }
         constexpr const T& operator*() const& noexcept { return m_value; }

@@ -2,6 +2,17 @@
 
 namespace dppcmd
 {
+    std::vector<const command_info*> command_service::commands() const
+    {
+        std::vector<const command_info*> out;
+        out.reserve(m_commands.size());
+
+        for (const auto& [info, _] : m_commands)
+            out.push_back(&info);
+
+        return out;
+    }
+
     TASK(command_result) command_service::run_command(const dpp::message_create_t* event, std::string_view name,
                                                       std::vector<std::string>&& args)
     {
