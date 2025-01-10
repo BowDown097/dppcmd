@@ -91,14 +91,14 @@ namespace dppcmd
         {
             if constexpr (std::derived_from<std::remove_pointer_t<Module>, module_base>)
             {
-                return std::function<Result(Module, BUFFER_TYPES)>([&cmd, fn](Module m, BUFFER_PARAMS) -> Result {
+                return std::function<Result(Module, BUFFER_TYPES)>([cmd, fn](Module m, BUFFER_PARAMS) -> Result {
                     auto fn_args = get_apply_args<Args>(m, cmd, std::move(args), ctx, svc);
                     return apply_fn<Result>(fn, fn_args);
                 });
             }
             else
             {
-                return std::function<Result(BUFFER_TYPES)>([&cmd, fn](BUFFER_PARAMS) -> Result {
+                return std::function<Result(BUFFER_TYPES)>([cmd, fn](BUFFER_PARAMS) -> Result {
                     auto fn_args = get_apply_args<Args>(cmd, std::move(args), ctx, svc);
                     return apply_fn<Result>(fn, fn_args);
                 });
@@ -159,7 +159,7 @@ namespace dppcmd
             constexpr long serviceIndex = utility::tuple_index_of_v<const command_service*, Args>;
 
             constexpr size_t drop = (clusterIndex != -1) + (contextIndex != -1) + (serviceIndex != -1);
-            if constexpr (drop == 3)
+            if constexpr (drop == 0)
                 return convert_args<Args>(cmd, std::move(args), ctx, svc);
 
             auto converted = convert_args<utility::tuple_drop_n_t<drop, Args>>(cmd, std::move(args), ctx, svc);
