@@ -1,6 +1,7 @@
 #pragma once
 #include "basecommandservice.h"
 #include "dppcmd/commands/commandexecution.h"
+#include "dppcmd/commands/commandfunction.h"
 #include "dppcmd/commands/commandinfo.h"
 #include "dppcmd/utils/function_traits.h"
 

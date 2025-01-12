@@ -7,9 +7,6 @@ namespace dppcmd
 {
     class module_base;
 
-    template<typename T>
-    concept module_derivative = std::derived_from<T, module_base>;
-
     class module_service : public base_command_service
     {
     public:
@@ -21,20 +18,20 @@ namespace dppcmd
         std::vector<const command_info*> search_command(std::string_view name) const override;
         std::vector<const module_base*> search_module(std::string_view name) const;
 
-        template<module_derivative M>
+        template<std::derived_from<module_base> M>
         void register_module()
         {
             m_modules.push_back(std::make_unique<M>());
         }
 
-        template<module_derivative M>
+        template<std::derived_from<module_base> M>
         void register_module(auto&& extra_data)
         {
             register_module<M>();
             m_extra_module_data.emplace(m_modules.back().get(), std::forward<decltype(extra_data)>(extra_data));
         }
 
-        template<module_derivative... Modules>
+        template<std::derived_from<module_base>... Modules>
         void register_modules()
         {
             (register_module<Modules>(), ...);

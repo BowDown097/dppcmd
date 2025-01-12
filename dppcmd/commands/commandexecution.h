@@ -1,9 +1,9 @@
 #pragma once
-#include "commandfunction.h"
 #include "dppcmd/services/basecommandservice.h"
 #include "dppcmd/utils/join.h"
 #include "dppcmd/utils/tuple_traits.h"
 #include "dppcmd/utils/type_traits.h"
+#include "exceptions.h"
 #include "remainder.h"
 
 #define BUFFER_PARAMS std::vector<std::string>&& args, const dpp::message_create_t* ctx, base_command_service* svc
@@ -17,6 +17,68 @@ namespace dppcmd
     class command_execution
     {
     public:
+        template<typename Result, typename Args, typename Module = void>
+        static auto create_buffer_function(auto&& fn, const std::string& cmd)
+        {
+            if constexpr (std::derived_from<std::remove_pointer_t<Module>, module_base>)
+            {
+                return std::function<Result(Module, BUFFER_TYPES)>([cmd, fn](Module m, BUFFER_PARAMS) -> Result {
+                    auto fn_args = get_apply_args<Args>(m, cmd, std::move(args), ctx, svc);
+                    return apply_fn<Result>(fn, fn_args);
+                });
+            }
+            else
+            {
+                return std::function<Result(BUFFER_TYPES)>([cmd, fn](BUFFER_PARAMS) -> Result {
+                    auto fn_args = get_apply_args<Args>(cmd, std::move(args), ctx, svc);
+                    return apply_fn<Result>(fn, fn_args);
+                });
+            }
+        }
+
+        template<class Tuple>
+        static constexpr size_t target_arg_count()
+        {
+            if constexpr (std::tuple_size_v<Tuple> > 0)
+            {
+                return []<size_t... Is>(std::index_sequence<Is...>) {
+                    return (... + []{
+                        using ArgType = std::tuple_element_t<Is, Tuple>;
+                        return !utility::is_specialization_of_v<ArgType, std::optional> &&
+                               !std::same_as<ArgType, dpp::cluster*> &&
+                               !std::same_as<ArgType, const dpp::message_create_t*> &&
+                               !std::same_as<ArgType, const command_service*>;
+                    }());
+                }(std::make_index_sequence<std::tuple_size_v<Tuple>>());
+            }
+            else
+            {
+                return 0;
+            }
+        }
+    private:
+        // this exists because dynamic_cast requires a complete type definition,
+        // which would cause a recursive include, as commandservice.h includes this file.
+        static command_service* create_command_service(base_command_service* svc);
+
+    #ifdef DPP_CORO
+        template<typename Result, typename Fn, typename Tuple>
+            requires utility::is_specialization_of_v<Result, dpp::task>
+        static Result apply_fn(Fn&& f, Tuple&& t)
+        {
+            if constexpr (std::same_as<dpp::detail::awaitable_result<Result>, void>)
+                co_await std::apply(std::forward<Fn>(f), std::forward<Tuple>(t));
+            else
+                co_return co_await std::apply(std::forward<Fn>(f), std::forward<Tuple>(t));
+        }
+    #endif
+
+        template<typename Result, typename Fn, typename Tuple>
+        static Result apply_fn(Fn&& f, Tuple&& t)
+        {
+            return std::apply(std::forward<Fn>(f), std::forward<Tuple>(t));
+        }
+
         template<typename T>
         static T convert_arg(const std::string& arg, size_t index, const std::string& cmd,
                              const dpp::message_create_t* ctx, base_command_service* svc)
@@ -84,65 +146,6 @@ namespace dppcmd
             return [args = std::move(args), &cmd, ctx, svc]<size_t... Is>(std::index_sequence<Is...>) {
                 return std::make_tuple(convert_arg_at<Tuple, Is>(cmd, args, ctx, svc)...);
             }(std::make_index_sequence<std::tuple_size_v<Tuple>>());
-        }
-
-        template<typename Result, typename Args, typename Module = void>
-        static auto create_buffer_function(auto&& fn, const std::string& cmd)
-        {
-            if constexpr (std::derived_from<std::remove_pointer_t<Module>, module_base>)
-            {
-                return std::function<Result(Module, BUFFER_TYPES)>([cmd, fn](Module m, BUFFER_PARAMS) -> Result {
-                    auto fn_args = get_apply_args<Args>(m, cmd, std::move(args), ctx, svc);
-                    return apply_fn<Result>(fn, fn_args);
-                });
-            }
-            else
-            {
-                return std::function<Result(BUFFER_TYPES)>([cmd, fn](BUFFER_PARAMS) -> Result {
-                    auto fn_args = get_apply_args<Args>(cmd, std::move(args), ctx, svc);
-                    return apply_fn<Result>(fn, fn_args);
-                });
-            }
-        }
-
-        template<class Tuple>
-        static size_t target_arg_count()
-        {
-            if constexpr (std::tuple_size_v<Tuple> > 0)
-            {
-                return []<size_t... Is>(std::index_sequence<Is...>) {
-                    return (... + []{
-                        using ArgType = std::tuple_element_t<Is, Tuple>;
-                        return !utility::is_specialization_of_v<ArgType, std::optional> &&
-                               !std::same_as<ArgType, dpp::cluster*> &&
-                               !std::same_as<ArgType, const dpp::message_create_t*> &&
-                               !std::same_as<ArgType, const command_service*>;
-                    }());
-                }(std::make_index_sequence<std::tuple_size_v<Tuple>>());
-            }
-            else
-            {
-                return 0;
-            }
-        }
-    private:
-        // this exists because dynamic_cast requires a complete type definition,
-        // which would cause a recursive include, as commandservice.h includes this file.
-        static command_service* create_command_service(base_command_service* svc);
-
-        template<typename Result, typename Fn, typename Tuple> requires utility::is_task_v<Result>
-        static Result apply_fn(Fn&& f, Tuple&& t)
-        {
-            if constexpr (std::same_as<typename utility::task_type<Result>::value_type, void>)
-                co_await std::apply(std::forward<Fn>(f), std::forward<Tuple>(t));
-            else
-                co_return co_await std::apply(std::forward<Fn>(f), std::forward<Tuple>(t));
-        }
-
-        template<typename Result, typename Fn, typename Tuple>
-        static Result apply_fn(Fn&& f, Tuple&& t)
-        {
-            return std::apply(std::forward<Fn>(f), std::forward<Tuple>(t));
         }
 
         template<typename Args, typename Module>

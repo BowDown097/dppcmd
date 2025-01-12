@@ -19,8 +19,8 @@ namespace dppcmd
         register_type_reader<user_in>();
     }
 
-    TASK(precondition_result) base_command_service::gen_precondition_result(command_info& command,
-                                                                            const dpp::message_create_t* event)
+    TASK(precondition_result) base_command_service::gen_precondition_result(
+        command_info& command, const dpp::message_create_t* event)
     {
         if (command.preconditions.empty())
             RETURN(precondition_result::from_success());
